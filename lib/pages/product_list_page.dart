@@ -143,7 +143,6 @@ class _ProductListPageState extends State<ProductListPage> {
           'Product Catalog',
           variant: AppTextVariant.titleLarge,
         ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
       ),
       body: _buildBody(),
@@ -314,8 +313,7 @@ class _ProductFilterSection extends StatelessWidget {
     
     return AppText(
       countText,
-      variant: AppTextVariant.bodyMedium,
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      variant: AppTextVariant.bodySmall,
     );
   }
 
@@ -351,21 +349,11 @@ class _FilterChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AppCard(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          decoration: BoxDecoration(
-            color: isSelected 
-                ? Theme.of(context).colorScheme.primaryContainer
-                : null,
-            borderRadius: BorderRadius.circular(8.0),
-          ),
           child: AppText(
             label,
             variant: AppTextVariant.labelLarge,
-            color: isSelected
-                ? Theme.of(context).colorScheme.onPrimaryContainer
-                : Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ),

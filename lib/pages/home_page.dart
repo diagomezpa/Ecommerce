@@ -117,7 +117,6 @@ class _HomePageState extends State<HomePage> {
           'Pragma Store',
           variant: AppTextVariant.titleLarge,
         ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
       ),
       body: _buildBody(),
@@ -367,7 +366,6 @@ class _QuickActionCard extends StatelessWidget {
               Icon(
                 icon,
                 size: 48,
-                color: Theme.of(context).colorScheme.primary,
               ),
               
               // ATOM: Icon spacing
@@ -388,7 +386,6 @@ class _QuickActionCard extends StatelessWidget {
                 subtitle,
                 variant: AppTextVariant.bodySmall,
                 textAlign: TextAlign.center,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ],
           ),

@@ -101,7 +101,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           'Product Details',
           variant: AppTextVariant.titleLarge,
         ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
       ),
       body: _buildBody(),
