@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
 import 'product_detail_page.dart';
+import 'product_list_page.dart';
 
 /// HomePage - Main entry point for the eCommerce application
 ///
@@ -287,7 +288,7 @@ class _QuickActionsSection extends StatelessWidget {
                     icon: Icons.grid_view,
                     title: 'Catalog',
                     subtitle: 'Browse all products',
-                    onTap: () => _showComingSoon(context, 'Catalog'),
+                    onTap: () => _navigateToCatalog(context),
                   ),
                 ),
                 
@@ -326,6 +327,16 @@ class _QuickActionsSection extends StatelessWidget {
   void _showComingSoon(BuildContext context, String feature) {
   AppSnackbar.info(context, message: '$feature coming soon!');
 }
+
+  /// Navigate to product catalog page
+  void _navigateToCatalog(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ProductListPage(),
+      ),
+    );
+  }
 }
 
 /// MOLECULE: Quick Action Card
