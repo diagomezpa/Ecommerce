@@ -8,34 +8,35 @@ import 'package:pragma_design_system/pragma_design_system.dart';
 /// components and handles loading, success, and error states through ProductBloc.
 /// 
 /// **Features:**
-/// - Clean, responsive product detail layout
-/// - Loading state with circular progress indicator
+/// - Clean, responsive product detail layout with fixed bottom CTA
+/// - Loading state derived from product data presence
 /// - Error handling with AppEmptyStateSection
-/// - Product image, title, price, category, and description display
-/// - Primary CTA button for adding to cart
-/// - Scroll support for content overflow
+/// - Product image, title, price, category badge, and description display
+/// - Fixed primary CTA button for optimal accessibility
+/// - Scroll support for main content with preserved bottom action
 ///
 /// **Design System Usage:**
 /// - AppImage: Product image display with network loading
 /// - AppText: Typography hierarchy (title, subtitle, body)
-/// - AppPrice: Formatted price display
+/// - AppPrice: Formatted price display with consistent styling
 /// - AppSection: Structured content sections
-/// - AppSpacer: Consistent spacing
+/// - AppSpacer: Consistent spacing throughout
 /// - AppButton: Primary CTA button
 /// - AppEmptyStateSection: Error state handling
+/// - Container: Category badge with design system colors
 ///
 /// **State Management:**
 /// - Uses ProductBloc for data fetching
 /// - Dispatches LoadProduct event on initialization
-/// - Listens to ProductState stream for UI updates
+/// - State derived from data presence (eliminates explicit loading flag)
 ///
 /// **Layout Structure:**
 /// 1. Product image (full width, fixed height)
 /// 2. Product title (large, bold)
-/// 3. Product price (highlighted)
-/// 4. Product category (secondary text)
+/// 3. Product price (using AppPrice component)
+/// 4. Product category (styled badge)
 /// 5. Product description (in its own section)
-/// 6. Add to cart button (bottom, primary action)
+/// 6. Fixed add to cart button (bottom, always accessible)
 class ProductDetailPage extends StatefulWidget {
   const ProductDetailPage({
     super.key,
@@ -53,7 +54,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   late final ProductBloc _productBloc;
   Product? _loadedProduct;
   String? _errorMessage;
-  bool _isLoading = false;
+
+  /// Loading state is derived from data presence
+  bool get _isLoading => _loadedProduct == null && _errorMessage == null;
 
   @override
   void initState() {
@@ -66,33 +69,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           if (productOrProducts is Product) {
             _loadedProduct = productOrProducts;
             _errorMessage = null;
-            _isLoading = false;
           } else if (productOrProducts is ProductDeleted) {
             _loadedProduct = productOrProducts.product;
             _errorMessage = null;
-            _isLoading = false;
           } else if (productOrProducts is String) {
             // Error case - the callback sometimes sends error messages as strings
             _errorMessage = productOrProducts;
             _loadedProduct = null;
-            _isLoading = false;
           }
         });
       }
     });
 
-    // Set initial loading state
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Load the product data
+    // Load the product data (loading state derived automatically)
     _productBloc.eventSink.add(LoadProduct(widget.productId));
   }
 
   @override
   void dispose() {
-    // Clean up resources
+    // Note: eventSink.close() is handled here since ProductBloc doesn't expose
+    // a dispose() method. This ensures proper cleanup of the stream.
     _productBloc.eventSink.close();
     super.dispose();
   }
@@ -109,6 +105,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         elevation: 0,
       ),
       body: _buildBody(),
+      bottomNavigationBar: _loadedProduct != null 
+          ? _buildFixedBottomCTA(_loadedProduct!)
+          : null,
     );
   }
 
@@ -146,10 +145,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       primaryAction: AppButton(
         text: 'Try Again',
         onPressed: () {
-          // Retry loading the product
+          // Retry loading the product (reset state and reload)
           setState(() {
-            _isLoading = true;
             _errorMessage = null;
+            _loadedProduct = null;
           });
           _productBloc.eventSink.add(LoadProduct(widget.productId));
         },
@@ -165,55 +164,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   /// Builds the success state UI with product information
+  /// Uses Design System components exclusively following Atomic Design
   Widget _buildSuccessState(Product product) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Product Image Section
+          // ATOM: Product Image with height constraint only
           _buildProductImage(product),
           
+          // ATOM: Spacing
           const AppSpacer(size: AppSpacerSize.large),
           
-          // Product Information Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Product Title
-                _buildProductTitle(product),
-                
-                const AppSpacer(size: AppSpacerSize.medium),
-                
-                // Product Price
-                _buildProductPrice(product),
-                
-                const AppSpacer(size: AppSpacerSize.small),
-                
-                // Product Category
-                _buildProductCategory(product),
-                
-                const AppSpacer(size: AppSpacerSize.large),
-                
-                // Product Description Section
-                _buildProductDescription(product),
-                
-                const AppSpacer(size: AppSpacerSize.extraLarge),
-                
-                // Add to Cart Button
-                _buildAddToCartButton(),
-                
-                const AppSpacer(size: AppSpacerSize.large),
-              ],
-            ),
-          ),
+          // MOLECULE: Main product info wrapped in AppCard surface
+          _buildProductInfoCard(product),
+          
+          // ATOM: Spacing
+          const AppSpacer(size: AppSpacerSize.medium),
+          
+          // MOLECULE: Description section using AppSection
+          _buildProductDescription(product),
+          
+          // Bottom spacing for fixed CTA
+          const AppSpacer(size: AppSpacerSize.extraLarge),
         ],
       ),
     );
   }
 
-  /// Builds the product image section
+  /// ATOM: Product image with technical constraints only
   Widget _buildProductImage(Product product) {
     return SizedBox(
       height: 300,
@@ -226,7 +205,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  /// Builds the product title
+  /// MOLECULE: Product info card - wraps main product data in AppCard surface
+  Widget _buildProductInfoCard(Product product) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ATOM: Product title
+            _buildProductTitle(product),
+            
+            // ATOM: Spacing
+            const AppSpacer(size: AppSpacerSize.medium),
+            
+            // MOLECULE: Price component
+            _buildProductPrice(product),
+            
+            // ATOM: Spacing
+            const AppSpacer(size: AppSpacerSize.small),
+            
+            // MOLECULE: Category badge using AppCard
+            _buildProductCategoryBadge(product),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ATOM: Product title text
   Widget _buildProductTitle(Product product) {
     return AppText(
       product.title,
@@ -236,37 +243,45 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
-  /// Builds the product price display
+  /// MOLECULE: Product price using AppPrice component
   Widget _buildProductPrice(Product product) {
-    return AppText(
-      '\$${product.price.toStringAsFixed(2)}',
-      variant: AppTextVariant.titleLarge,
-      color: Theme.of(context).colorScheme.primary,
+    return AppPrice(
+      value: product.price,
+      highlight: true,
     );
   }
 
-  /// Builds the product category display
-  Widget _buildProductCategory(Product product) {
-    return AppText(
-      _formatCategoryName(product.category),
-      variant: AppTextVariant.titleMedium,
-      color: Theme.of(context).colorScheme.secondary,
-    );
-  }
-
-  /// Builds the product description section
-  Widget _buildProductDescription(Product product) {
-    return AppSection(
-      title: 'Description',
-      child: AppText(
-        product.description,
-        variant: AppTextVariant.bodyLarge,
-        textAlign: TextAlign.justify,
+  /// MOLECULE: Product category badge using AppCard for visual surface
+  /// No Container styling - AppCard provides the semantic surface
+  Widget _buildProductCategoryBadge(Product product) {
+    return SizedBox(
+      width: 120, // Technical constraint only
+      child: AppCard(
+        child: AppText(
+          _formatCategoryName(product.category),
+          variant: AppTextVariant.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
 
-  /// Builds the add to cart button
+  /// MOLECULE: Product description using AppSection semantic block
+  Widget _buildProductDescription(Product product) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: AppSection(
+        title: 'Description',
+        child: AppText(
+          product.description,
+          variant: AppTextVariant.bodyLarge,
+          textAlign: TextAlign.justify,
+        ),
+      ),
+    );
+  }
+
+  /// ATOM: Add to cart button
   Widget _buildAddToCartButton() {
     return SizedBox(
       width: double.infinity,
@@ -279,6 +294,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           // Handle add to cart action
           _handleAddToCart();
         },
+      ),
+    );
+  }
+
+  /// MOLECULE: Fixed bottom CTA using AppCard for visual surface
+  /// SafeArea is technical wrapper, AppCard provides semantic surface
+  Widget _buildFixedBottomCTA(Product product) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: AppCard(
+          child: _buildAddToCartButton(),
+        ),
       ),
     );
   }
