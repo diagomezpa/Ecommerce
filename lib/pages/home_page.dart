@@ -3,6 +3,7 @@ import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
 import 'product_detail_page.dart';
 import 'product_list_page.dart';
+import 'search_page.dart';
 
 /// HomePage - Main entry point for the eCommerce application
 ///
@@ -186,7 +187,7 @@ class _HomePageState extends State<HomePage> {
           const AppSpacer(size: AppSpacerSize.extraLarge),
           
           // MOLECULE: Quick Actions Section
-          const _QuickActionsSection(),
+          _QuickActionsSection(allProducts: products),
           
           // ATOM: Bottom spacing
           const AppSpacer(size: AppSpacerSize.extraLarge),
@@ -265,7 +266,11 @@ class _FeaturedProductsSection extends StatelessWidget {
 /// MOLECULE: Quick Actions Section
 /// Provides access to core app functionality
 class _QuickActionsSection extends StatelessWidget {
-  const _QuickActionsSection();
+  const _QuickActionsSection({
+    required this.allProducts,
+  });
+
+  final List<Product> allProducts;
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +305,7 @@ class _QuickActionsSection extends StatelessWidget {
                     icon: Icons.search,
                     title: 'Search',
                     subtitle: 'Find products',
-                    onTap: () => _showComingSoon(context, 'Search'),
+                    onTap: () => _navigateToSearch(context),
                   ),
                 ),
               ],
@@ -333,6 +338,16 @@ class _QuickActionsSection extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => const ProductListPage(),
+      ),
+    );
+  }
+
+  /// Navigate to search page with all available products
+  void _navigateToSearch(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchPage(products: allProducts),
       ),
     );
   }
