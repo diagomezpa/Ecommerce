@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
+import 'cart_page.dart';
 
 /// ProductDetailPage - A comprehensive product detail view for eCommerce
 ///
@@ -102,6 +103,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           variant: AppTextVariant.titleLarge,
         ),
         elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () => _navigateToCart(),
+            icon: const Icon(Icons.shopping_cart),
+            tooltip: 'Shopping Cart',
+          ),
+        ],
       ),
       body: _buildBody(),
       bottomNavigationBar: _loadedProduct != null 
@@ -325,6 +333,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     // 2. Navigate to cart or show success feedback
     // 3. Update any cart counters or badges
     // For this demo, we're just showing a snackbar
+  }
+
+  /// Navigate to cart page
+  void _navigateToCart() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CartPage(),
+      ),
+    );
   }
 
   /// Formats the category enum to a readable string

@@ -4,6 +4,7 @@ import 'package:pragma_design_system/pragma_design_system.dart';
 import 'product_detail_page.dart';
 import 'product_list_page.dart';
 import 'search_page.dart';
+import 'cart_page.dart';
 
 /// HomePage - Main entry point for the eCommerce application
 ///
@@ -44,7 +45,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late final ProductBloc _productBloc;
-  List<Product> _featuredProducts = [];
+  final List<Product> _featuredProducts = [];
   String? _errorMessage;
   int _loadedCount = 0;
   final int _targetCount = 6;
@@ -119,6 +120,16 @@ class _HomePageState extends State<HomePage> {
           variant: AppTextVariant.titleLarge,
         ),
         elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CartPage()),
+            ),
+            icon: const Icon(Icons.shopping_cart),
+            tooltip: 'Shopping Cart',
+          ),
+        ],
       ),
       body: _buildBody(),
     );
@@ -319,18 +330,16 @@ class _QuickActionsSection extends StatelessWidget {
               icon: Icons.shopping_cart,
               title: 'Shopping Cart',
               subtitle: 'View your items',
-              onTap: () => _showComingSoon(context, 'Cart'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartPage()),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  /// Placeholder action for features not yet implemented
-  void _showComingSoon(BuildContext context, String feature) {
-  AppSnackbar.info(context, message: '$feature coming soon!');
-}
 
   /// Navigate to product catalog page
   void _navigateToCatalog(BuildContext context) {
