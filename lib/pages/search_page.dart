@@ -64,24 +64,15 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const AppText(
-          'Search Products',
-          variant: AppTextVariant.titleLarge,
-        ),
-        elevation: 0,
-      ),
+    return AppPage(
+      title: 'Search Products',
       body: Column(
         children: [
           // MOLECULE: Search input section
           _SearchInput(controller: _searchController),
           
-          // ATOM: Section separator
-          const AppSpacer(size: AppSpacerSize.medium),
-          
           // ORGANISM: Search results section
-          Flexible(
+          Expanded(
             child: _SearchResults(controller: _searchController),
           ),
         ],
@@ -148,25 +139,25 @@ class _SearchInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: AppSection(
-        title: 'Find Products',
-        child: Column(
-          children: [
-            // ATOM: Section spacing
-            const AppSpacer(size: AppSpacerSize.small),
-            
-            // MOLECULE: Search form field
-            AppFormField(
-              controller: controller.textController,
-              label: 'Search products...',
-              hintText: 'Enter product name or description',
-              prefixIcon: AppIcon(Icons.search),
-              suffixIcon: AppIcon(Icons.clear),
-            ),
-          ],
-        ),
+    return AppSection(
+      title: 'Find Products',
+      child: Column(
+        children: [
+          // ATOM: Section spacing
+          const AppSpacer(size: AppSpacerSize.small),
+          
+          // MOLECULE: Search form field
+          AppFormField(
+            controller: controller.textController,
+            label: 'Search products...',
+            hintText: 'Enter product name or description',
+            prefixIcon: AppIcon(Icons.search),
+            suffixIcon: AppIcon(Icons.clear),
+          ),
+          
+          // ATOM: Bottom spacing
+          const AppSpacer(size: AppSpacerSize.medium),
+        ],
       ),
     );
   }
@@ -198,18 +189,24 @@ class _SearchResultsState extends State<_SearchResults> {
         return ValueListenableBuilder<String>(
           valueListenable: widget.controller.searchQuery,
           builder: (context, query, child) {
-            // Initial state - no search performed yet
-            if (query.isEmpty) {
-              return _buildInitialState();
-            }
-
-            // Results found
-            if (filteredProducts.isNotEmpty) {
-              return _buildResultsFound(filteredProducts);
-            }
-
-            // No results found
-            return _buildNoResults(query);
+            // Single scroll view for all content
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Initial state - no search performed yet
+                  if (query.isEmpty) _buildInitialState(),
+                  
+                  // Results found
+                  if (query.isNotEmpty && filteredProducts.isNotEmpty)
+                    _buildResultsFound(filteredProducts),
+                  
+                  // No results found
+                  if (query.isNotEmpty && filteredProducts.isEmpty)
+                    _buildNoResults(query),
+                ],
+              ),
+            );
           },
         );
       },
@@ -218,71 +215,73 @@ class _SearchResultsState extends State<_SearchResults> {
 
   /// ATOM: Initial state before any search
   Widget _buildInitialState() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: AppEmptyStateSection(
-        icon: Icons.search_outlined,
-        title: 'Start Searching',
-        description: 'Enter a product name or description to find what you\'re looking for.',
-      ),
+    return Column(
+      children: [
+        const AppSpacer(size: AppSpacerSize.large),
+        AppEmptyStateSection(
+          icon: Icons.search_outlined,
+          title: 'Start Searching',
+          description: 'Enter a product name or description to find what you\'re looking for.',
+        ),
+      ],
     );
   }
 
   /// ORGANISM: Search results using design system template
   Widget _buildResultsFound(List<Product> products) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ATOM: Results count
-            AppText(
-              '${products.length} product${products.length == 1 ? '' : 's'} found',
-              variant: AppTextVariant.bodyMedium,
-            ),
-            
-            // ATOM: Results spacing
-            const AppSpacer(size: AppSpacerSize.medium),
-            
-            // TEMPLATE: Product grid using design system template
-            ProductListTemplate(
-              products: products
-                  .map((product) => AppProductListItem(
-                        title: product.title,
-                        subtitle: _formatCategoryName(product.category),
-                        price: '\$${product.price.toStringAsFixed(2)}',
-                        imageUrl: product.image,
-                        isEnabled: true,
-                        onTap: () => _navigateToProductDetail(context, product),
-                      ))
-                  .toList(),
-            ),
-            
-            // ATOM: Bottom spacing
-            const AppSpacer(size: AppSpacerSize.large),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AppSpacer(size: AppSpacerSize.medium),
+        
+        // ATOM: Results count
+        AppSection(
+          title: 'Search Results',
+          child: AppText(
+            '${products.length} product${products.length == 1 ? '' : 's'} found',
+            variant: AppTextVariant.bodyMedium,
+          ),
         ),
-      ),
+        
+        const AppSpacer(size: AppSpacerSize.medium),
+        
+        // TEMPLATE: Product grid using design system template
+        ProductListTemplate(
+          products: products
+              .map((product) => AppProductListItem(
+                    title: product.title,
+                    subtitle: _formatCategoryName(product.category),
+                    price: '\$${product.price.toStringAsFixed(2)}',
+                    imageUrl: product.image,
+                    isEnabled: true,
+                    onTap: () => _navigateToProductDetail(context, product),
+                  ))
+              .toList(),
+        ),
+        
+        const AppSpacer(size: AppSpacerSize.large),
+      ],
     );
   }
 
   /// ORGANISM: No results empty state
   Widget _buildNoResults(String query) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: AppEmptyStateSection(
-        icon: Icons.search_off_outlined,
-        title: 'No Results Found',
-        description: 'We couldn\'t find any products matching "$query". Try different keywords or check for typos.',
-        primaryAction: AppButton(
-          text: 'Clear Search',
-          variant: AppButtonVariant.outline,
-          onPressed: () {
-            widget.controller.textController.clear();
-          },
+    return Column(
+      children: [
+        const AppSpacer(size: AppSpacerSize.large),
+        AppEmptyStateSection(
+          icon: Icons.search_off_outlined,
+          title: 'No Results Found',
+          description: 'We couldn\'t find any products matching "$query". Try different keywords or check for typos.',
+          primaryAction: AppButton(
+            text: 'Clear Search',
+            variant: AppButtonVariant.outline,
+            onPressed: () {
+              widget.controller.textController.clear();
+            },
+          ),
         ),
-      ),
+      ],
     );
   }
 
