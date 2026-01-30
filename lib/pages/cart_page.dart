@@ -418,7 +418,10 @@ class _CartPageState extends State<CartPage> {
       height: 36,
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(icon, size: 18),
+        icon: AppIcon(
+          icon,
+          size: AppIconSize.small,
+        ),
         padding: EdgeInsets.zero,
       ),
     );
@@ -428,10 +431,10 @@ class _CartPageState extends State<CartPage> {
   Widget _buildRemoveButton(Products cartProduct) {
     return IconButton(
       onPressed: () => _showRemoveDialog(cartProduct),
-      icon: const Icon(
+      icon: const AppIcon(
         Icons.delete_outline,
         color: Colors.red,
-        size: 20,
+        size: AppIconSize.small,
       ),
     );
   }
@@ -495,84 +498,41 @@ class _CartPageState extends State<CartPage> {
 
   /// Show remove item confirmation dialog
   void _showRemoveDialog(Products cartProduct) {
-    showDialog(
+    AppDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: AppText(
-          'Remove Item',
-          variant: AppTextVariant.titleMedium,
+      title: 'Remove Item',
+      content: 'Are you sure you want to remove "${cartProduct.productDetails?.title ?? 'this item'}" from your cart?',
+      actions: [
+        AppButton(
+          text: 'Cancel',
+          variant: AppButtonVariant.outline,
+          onPressed: () => Navigator.pop(context),
         ),
-        content: AppText(
-          'Are you sure you want to remove "${cartProduct.productDetails?.title ?? 'this item'}" from your cart?',
-          variant: AppTextVariant.bodyMedium,
+        AppButton(
+          text: 'Remove',
+          variant: AppButtonVariant.primary,
+          onPressed: () {
+            Navigator.pop(context);
+            _removeProduct(cartProduct.productId);
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: AppText(
-              'Cancel',
-              variant: AppTextVariant.labelLarge,
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _removeProduct(cartProduct.productId);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: AppText(
-              'Remove',
-              variant: AppTextVariant.labelLarge,
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
   /// Handle checkout action
   void _handleCheckout() {
-    showDialog(
+    AppDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: AppText(
-          'Checkout',
-          variant: AppTextVariant.titleMedium,
+      title: 'Checkout',
+      content: 'Order Summary:\n\nItems: ${_getTotalItems()}\nTotal: \$${_calculateTotal().toStringAsFixed(2)}\n\nCheckout functionality will be implemented here.',
+      actions: [
+        AppButton(
+          text: 'OK',
+          variant: AppButtonVariant.primary,
+          onPressed: () => Navigator.pop(context),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppText(
-              'Order Summary:',
-              variant: AppTextVariant.titleSmall,
-            ),
-            const AppSpacer(size: AppSpacerSize.small),
-            AppText(
-              'Items: ${_getTotalItems()}',
-              variant: AppTextVariant.bodyMedium,
-            ),
-            AppText(
-              'Total: \$${_calculateTotal().toStringAsFixed(2)}',
-              variant: AppTextVariant.bodyMedium,
-            ),
-            const AppSpacer(size: AppSpacerSize.medium),
-            AppText(
-              'Checkout functionality will be implemented here.',
-              variant: AppTextVariant.bodySmall,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: AppText(
-              'OK',
-              variant: AppTextVariant.labelLarge,
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
