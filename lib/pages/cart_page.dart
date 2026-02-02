@@ -501,7 +501,8 @@ class _CartPageState extends State<CartPage> {
     AppDialog.show(
       context: context,
       title: 'Remove Item',
-      content: 'Are you sure you want to remove "${cartProduct.productDetails?.title ?? 'this item'}" from your cart?',
+       content: AppText('Are you sure you want to remove "${cartProduct.productDetails?.title ?? 'this item'}" from your cart?'),
+      
       actions: [
         AppButton(
           text: 'Cancel',
@@ -525,7 +526,7 @@ class _CartPageState extends State<CartPage> {
     AppDialog.show(
       context: context,
       title: 'Checkout',
-      content: 'Order Summary:\n\nItems: ${_getTotalItems()}\nTotal: \$${_calculateTotal().toStringAsFixed(2)}\n\nCheckout functionality will be implemented here.',
+      content: AppText('Order Summary:\n\nItems: ${_getTotalItems()}\nTotal: \$${_calculateTotal().toStringAsFixed(2)}\n\nCheckout functionality will be implemented here.'),
       actions: [
         AppButton(
           text: 'OK',

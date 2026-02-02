@@ -44,6 +44,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  
   late final ProductBloc _productBloc;
   final List<Product> _featuredProducts = [];
   String? _errorMessage;
@@ -111,6 +112,30 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  /// Show logout confirmation dialog
+  void _showLogoutDialog(BuildContext context) {
+    AppDialog.show(
+      context: context,
+      title: 'Logout',
+      content: AppText('Are you sure you want to logout?'),
+      actions: [
+        AppButton(
+          text: 'Cancel',
+          variant: AppButtonVariant.outline,
+          onPressed: () => Navigator.pop(context),
+        ),
+        AppButton(
+          text: 'Logout',
+          variant: AppButtonVariant.primary,
+          onPressed: () {
+            Navigator.pop(context); // Close dialog
+            Navigator.pushReplacementNamed(context, '/login'); // Navigate to login
+          },
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,6 +153,11 @@ class _HomePageState extends State<HomePage> {
             ),
             icon: const Icon(Icons.shopping_cart),
             tooltip: 'Shopping Cart',
+          ),
+          IconButton(
+            onPressed: () => _showLogoutDialog(context),
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
           ),
         ],
       ),

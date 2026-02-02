@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'pages/home_page.dart';
+import 'pages/login_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +17,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/home': (context) => const HomePage(),
+      },
     );
   }
 }
