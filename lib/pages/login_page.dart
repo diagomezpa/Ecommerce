@@ -37,7 +37,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   late final AuthBloc authBloc;
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   
@@ -71,26 +70,27 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleLogin() {
-    /// Verifica si el formulario es válido antes de proceder con.
-    /// 
-    /// Este condicional evalúa dos condiciones:
-    /// 1. Primero verifica que `_formKey.currentState` no sea null usando el operador `?.`
-    /// 2. Si no es null, llama al método `validate()` que retorna true si todos los campos del formulario son válidos
-    /// 3. Si `_formKey.currentState` es null, usa el operador `??` para devolver false como valor por defecto
-    /// 
-    /// El resultado final es true solo si el formulario existe y todos sus campos pasan la validación.
-    if (_formKey.currentState?.validate() ?? false) {
+    final usernameError = _validateUsername(_usernameController.text);
+    final passwordError = _validatePassword(_passwordController.text);
+    
+    // Check if there are validation errors
+    if (usernameError != null || passwordError != null) {
       setState(() {
-        _isLoading = true;
-        _authError = null;
+        // Trigger rebuild to show validation messages
       });
-      
-      // Consumir API real de autenticación
-      authBloc.add(LoginEvent(
-        username: _usernameController.text.trim(),
-        password: _passwordController.text.trim(),
-      ));
+      return;
     }
+
+    setState(() {
+      _isLoading = true;
+      _authError = null;
+    });
+    
+    // Consumir API real de autenticación
+    authBloc.add(LoginEvent(
+      username: _usernameController.text.trim(),
+      password: _passwordController.text.trim(),
+    ));
   }
 
   void _handleLoginSuccess() {
@@ -142,15 +142,8 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const AppText(
-          'Login',
-          variant: AppTextVariant.titleLarge,
-        ),
-        elevation: 0,
-        centerTitle: true,
-      ),
+    return AppPage(
+      title: 'Login',
       body: _buildBody(),
     );
   }
@@ -198,11 +191,10 @@ class _LoginPageState extends State<LoginPage> {
           textAlign: TextAlign.center,
         ),
         const AppSpacer(size: AppSpacerSize.medium),
-        const AppText(
+        AppText(
           'Please sign in to your account to continue shopping',
           variant: AppTextVariant.bodyLarge,
           textAlign: TextAlign.center,
-          color: Colors.grey,
         ),
       ],
     );
@@ -211,55 +203,79 @@ class _LoginPageState extends State<LoginPage> {
   /// ORGANISM: Login form with input fields and submit button
   Widget _buildLoginForm() {
     return AppCard(
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Username field
-            TextFormField(
-              controller: _usernameController,
-              keyboardType: TextInputType.text,
-              validator: _validateUsername,
-              enabled: !_isLoading,
-              decoration: const InputDecoration(
-                labelText: 'Username',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Username field
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppText(
+                'Username',
+                variant: AppTextVariant.labelLarge,
+              ),
+              const AppSpacer(size: AppSpacerSize.small),
+              AppFormField(
+                controller: _usernameController,
                 hintText: 'Enter your username',
-                border: OutlineInputBorder(),
+                enabled: !_isLoading,
               ),
-            ),
-            
-            const AppSpacer(size: AppSpacerSize.large),
-            
-            // Password field
-            TextFormField(
-              controller: _passwordController,
-              validator: _validatePassword,
-              enabled: !_isLoading,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
+              // Custom validation message
+              if (_usernameController.text.isNotEmpty && _validateUsername(_usernameController.text) != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: AppText(
+                    _validateUsername(_usernameController.text)!,
+                    variant: AppTextVariant.bodySmall,
+                  ),
+                ),
+            ],
+          ),
+          
+          const AppSpacer(size: AppSpacerSize.large),
+          
+          // Password field
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppText(
+                'Password',
+                variant: AppTextVariant.labelLarge,
+              ),
+              const AppSpacer(size: AppSpacerSize.small),
+              AppFormField(
+                controller: _passwordController,
                 hintText: 'Enter your password',
-                border: OutlineInputBorder(),
+                enabled: !_isLoading,
+                obscureText: true,
               ),
-            ),
-            
-            const AppSpacer(size: AppSpacerSize.extraLarge),
-            
-            // Login button
-            AppButton(
-              text: _isLoading ? 'Signing In...' : 'Sign In',
-              variant: AppButtonVariant.primary,
-              onPressed: _isLoading ? null : _handleLogin,
-              isLoading: _isLoading,
-            ),
-            
-            const AppSpacer(size: AppSpacerSize.medium),
-            
-            // Demo credentials helper
-            _buildDemoCredentials(),
-          ],
-        ),
+              // Custom validation message
+              if (_passwordController.text.isNotEmpty && _validatePassword(_passwordController.text) != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: AppText(
+                    _validatePassword(_passwordController.text)!,
+                    variant: AppTextVariant.bodySmall,
+                  ),
+                ),
+            ],
+          ),
+          
+          const AppSpacer(size: AppSpacerSize.extraLarge),
+          
+          // Login button
+          AppButton(
+            text: _isLoading ? 'Signing In...' : 'Sign In',
+            variant: AppButtonVariant.primary,
+            onPressed: _isLoading ? null : _handleLogin,
+            isLoading: _isLoading,
+          ),
+          
+          const AppSpacer(size: AppSpacerSize.medium),
+          
+          // Demo credentials helper
+          _buildDemoCredentials(),
+        ],
       ),
     );
   }
@@ -277,12 +293,10 @@ class _LoginPageState extends State<LoginPage> {
           const AppText(
             'Username: johnd',
             variant: AppTextVariant.bodySmall,
-            color: Colors.grey,
           ),
           const AppText(
             'Password: m38rmF\$',
             variant: AppTextVariant.bodySmall,
-            color: Colors.grey,
           ),
           const AppSpacer(size: AppSpacerSize.small),
           AppButton(
@@ -308,9 +322,9 @@ class _LoginPageState extends State<LoginPage> {
     return AppCard(
       child: Row(
         children: [
-          const AppIcon(
+          AppIcon(
             Icons.error_outline,
-            color: Colors.red,
+            color: AppColors.defaultError,
             size: AppIconSize.medium,
           ),
           const AppSpacer(size: AppSpacerSize.medium),
@@ -321,12 +335,10 @@ class _LoginPageState extends State<LoginPage> {
                 const AppText(
                   'Login Failed',
                   variant: AppTextVariant.titleSmall,
-                  color: Colors.red,
                 ),
                 AppText(
                   _authError!,
                   variant: AppTextVariant.bodyMedium,
-                  color: Colors.red,
                 ),
               ],
             ),
