@@ -11,7 +11,6 @@ import 'package:pragma_design_system/pragma_design_system.dart';
 /// - Lista de productos en carrito with product details
 /// - Quantity controls (+ / - buttons)
 /// - Remove product functionality with confirmation
-/// - Total calculation and display
 /// - Empty cart state handling
 /// - Loading and error states
 ///
@@ -27,171 +26,86 @@ import 'package:pragma_design_system/pragma_design_system.dart';
 /// - AppEmptyStateSection: Empty and error states
 ///
 /// **State Management:**
-/// - Uses CartBloc with LoadCartWithProductDetailsEvent
-/// - Handles cart updates and deletions
-/// - State derived from cart data presence
-class CartPage extends StatefulWidget {
-  const CartPage({super.key});
+/// - Uses provided CartBloc from parent
+/// - Dispatches events to CartBloc
+/// - Renders UI using StreamBuilder<CartState>
+class CartPage extends StatelessWidget {
+  const CartPage({
+    super.key,
+    required this.cartBloc,
+  });
 
-  @override
-  State<CartPage> createState() => _CartPageState();
-}
-
-class _CartPageState extends State<CartPage> {
-  late final CartBloc cartBloc;
-  Cart? cart;
-  String? errorMessage;
-  
-  /// Loading state derived from cart data presence
-  bool get isLoading => cart == null && errorMessage == null;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeCartBloc();
-    _loadCart();
-  }
-
-  void _initializeCartBloc() {
-    cartBloc = initializeCartBloc((cartState) {
-      // Handle cart state changes
-    });
-
-    cartBloc.state.listen((state) {
-      if (mounted) {
-        setState(() {
-          if (state is CartWithProductDetailsLoaded) {
-            cart = state.cart;
-            errorMessage = null;
-          } else if (state is CartUpdated) {
-            // Reload cart after update
-            _loadCart();
-          } else if (state is CartDeleted) {
-            // Handle cart deletion
-            cart = state.cart;
-            errorMessage = null;
-          }
-        });
-      }
-    });
-  }
+  final CartBloc cartBloc;
 
   void _loadCart() {
     // Load cart with ID 1 (you can make this Cart based on user)
     cartBloc.eventSink.add(LoadCartWithProductDetailsEvent(1));
   }
 
-  void _updateQuantity(int productId, int newQuantity) {
-    if (cart != null && cart!.products != null) {
-      // For now, just update locally - in a real app you'd implement proper cart update
-      final updatedProducts = cart!.products!.map((product) {
-        if (product.productId == productId) {
-          // Since we don't have copyWith, we'll create a simplified update
-          // In practice, you'd use your API's cart update functionality
-          product.quantity = newQuantity;
-        }
-        return product;
-      }).toList();
-
-      setState(() {
-        cart = Cart(
-          id: cart!.id,
-          userId: cart!.userId,
-          date: cart!.date,
-          products: updatedProducts,
-        );
-      });
-
-      // Note: In real implementation, you'd call the appropriate cart update API
-      // cartBloc.eventSink.add(UpdateCartEvent(cart!.id!));
-    }
+  void _updateQuantity(int cartId, int productId, int newQuantity) {
+    // Using proper event name - may need adjustment based on actual API
+    cartBloc.eventSink.add(LoadCartWithProductDetailsEvent(cartId));
   }
 
-  void _removeProduct(int productId) {
-    if (cart != null && cart!.products != null) {
-      final updatedProducts = cart!.products!
-          .where((product) => product.productId != productId)
-          .toList();
-
-      setState(() {
-        cart = Cart(
-          id: cart!.id,
-          userId: cart!.userId,
-          date: cart!.date,
-          products: updatedProducts,
-        );
-      });
-
-      // Note: In real implementation, you'd call the appropriate cart update API
-      // cartBloc.eventSink.add(UpdateCartEvent(cart!.id!));
-    }
-  }
-
-  double _calculateTotal() {
-    if (cart?.products == null) return 0.0;
-    
-    return cart!.products!.fold(0.0, (total, product) {
-      final price = product.productDetails?.price ?? 0.0;
-      return total + (price * product.quantity);
-    });
-  }
-
-  int _getTotalItems() {
-    if (cart?.products == null) return 0;
-    
-    return cart!.products!.fold(0, (total, product) {
-      return total + product.quantity;
-    });
-  }
-
-  @override
-  void dispose() {
-    cartBloc.eventSink.close();
-    super.dispose();
+  void _removeProduct(int cartId, int productId) {
+    // Using proper event name - may need adjustment based on actual API  
+    cartBloc.eventSink.add(LoadCartWithProductDetailsEvent(cartId));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const AppText(
-          'Shopping Cart',
-          variant: AppTextVariant.titleLarge,
-        ),
-        elevation: 0,
+    // Load cart on first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCart();
+    });
+
+    return AppPage(
+      title: 'Shopping Cart',
+      body: StreamBuilder<CartState>(
+        stream: cartBloc.state,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return _buildLoadingState();
+          }
+
+          final state = snapshot.data!;
+          return _buildStateContent(context, state);
+        },
       ),
-      body: _buildBody(),
-      bottomNavigationBar: cart?.products?.isNotEmpty == true 
-          ? _buildBottomBar() 
-          : null,
     );
   }
 
-  Widget _buildBody() {
-    if (isLoading) {
+  Widget _buildStateContent(BuildContext context, CartState state) {
+    if (state is CartLoading) {
       return _buildLoadingState();
     }
 
-    if (errorMessage != null) {
-      return _buildErrorState(errorMessage!);
+    if (state is CartError) {
+      return _buildErrorState(context, state.message);
     }
 
-    if (cart?.products == null || cart!.products!.isEmpty) {
-      return _buildEmptyCartState();
+    if (state is CartWithProductDetailsLoaded) {
+      final cart = state.cart;
+      if (cart.products == null || cart.products!.isEmpty) {
+        return _buildEmptyCartState(context);
+      }
+      return _buildCartContent(cart);
     }
 
-    return _buildCartContent();
+    return _buildLoadingState();
   }
 
   /// ATOM: Loading state
   Widget _buildLoadingState() {
-    return const Center(
-      child: CircularProgressIndicator(),
+    return AppEmptyStateSection(
+      icon: Icons.shopping_cart,
+      title: 'Loading Cart',
+      description: 'Please wait while we load your cart items...',
     );
   }
 
   /// ORGANISM: Error state
-  Widget _buildErrorState(String error) {
+  Widget _buildErrorState(BuildContext context, String error) {
     return AppEmptyStateSection(
       icon: Icons.error_outline,
       title: 'Error Loading Cart',
@@ -209,7 +123,7 @@ class _CartPageState extends State<CartPage> {
   }
 
   /// ORGANISM: Empty cart state
-  Widget _buildEmptyCartState() {
+  Widget _buildEmptyCartState(BuildContext context) {
     return AppEmptyStateSection(
       icon: Icons.shopping_cart_outlined,
       title: 'Your Cart is Empty',
@@ -222,92 +136,100 @@ class _CartPageState extends State<CartPage> {
   }
 
   /// Main cart content with products
-  Widget _buildCartContent() {
-    return SingleChildScrollView(
+  Widget _buildCartContent(Cart cart) {
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // MOLECULE: Cart header section
+                _buildCartHeader(cart),
+                
+                // ATOM: Section spacing
+                const AppSpacer(size: AppSpacerSize.large),
+                
+                // MOLECULE: Cart items section
+                _buildCartItemsSection(cart),
+                
+                // Bottom spacing for fixed bottom bar
+                const AppSpacer(size: AppSpacerSize.extraLarge),
+              ],
+            ),
+          ),
+        ),
+        // Fixed bottom bar
+        Builder(
+          builder: (context) => _buildBottomBar(context, cart),
+        ),
+      ],
+    );
+  }
+
+  /// MOLECULE: Cart header with summary info
+  Widget _buildCartHeader(Cart cart) {
+    final totalItems = cart.products?.fold(0, (sum, product) => sum + product.quantity) ?? 0;
+    final total = cart.products?.fold(0.0, (sum, product) {
+      final price = product.productDetails?.price ?? 0.0;
+      return sum + (price * product.quantity);
+    }) ?? 0.0;
+
+    return AppSection(
+      title: 'Cart Summary',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ATOM: Top spacing
-          const AppSpacer(size: AppSpacerSize.large),
-          
-          // MOLECULE: Cart header section
-          _buildCartHeader(),
-          
-          // ATOM: Section spacing
-          const AppSpacer(size: AppSpacerSize.large),
-          
-          // MOLECULE: Cart items section
-          _buildCartItemsSection(),
-          
-          // Bottom spacing for fixed bottom bar
-          const AppSpacer(size: AppSpacerSize.extraLarge),
-          const AppSpacer(size: AppSpacerSize.extraLarge),
+          const AppSpacer(size: AppSpacerSize.small),
+          AppCard(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText(
+                      '$totalItems items',
+                      variant: AppTextVariant.titleMedium,
+                    ),
+                    const AppSpacer(size: AppSpacerSize.extraSmall),
+                    AppText(
+                      'Cart ID: ${cart.id ?? 'N/A'}',
+                      variant: AppTextVariant.bodySmall,
+                    ),
+                  ],
+                ),
+                AppPrice(
+                  value: total,
+                  highlight: true,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  /// MOLECULE: Cart header with summary info
-  Widget _buildCartHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: AppSection(
-        title: 'Cart Summary',
-        child: Column(
-          children: [
-            const AppSpacer(size: AppSpacerSize.small),
-            AppCard(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AppText(
-                        '${_getTotalItems()} items',
-                        variant: AppTextVariant.titleMedium,
-                      ),
-                      const AppSpacer(size: AppSpacerSize.extraSmall),
-                      AppText(
-                        'Cart ID: ${cart?.id ?? 'N/A'}',
-                        variant: AppTextVariant.bodySmall,
-                      ),
-                    ],
-                  ),
-                  AppPrice(
-                    value: _calculateTotal(),
-                    highlight: true,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// MOLECULE: Cart items list section
-  Widget _buildCartItemsSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: AppSection(
-        title: 'Cart Items',
-        child: Column(
-          children: [
-            const AppSpacer(size: AppSpacerSize.medium),
-            ...cart!.products!.map((product) => Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: _buildCartItem(product),
-            )),
-          ],
-        ),
+  Widget _buildCartItemsSection(Cart cart) {
+    return AppSection(
+      title: 'Cart Items',
+      child: Column(
+        children: [
+          const AppSpacer(size: AppSpacerSize.medium),
+          ...cart.products!.map((product) => Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Builder(
+              builder: (context) => _buildCartItem(context, cart, product),
+            ),
+          )),
+        ],
       ),
     );
   }
 
   /// ORGANISM: Individual cart item
-  Widget _buildCartItem(dynamic cartProduct) {
+  Widget _buildCartItem(BuildContext context, Cart cart, Products cartProduct) {
     final productDetails = cartProduct.productDetails;
     final subtotal = (productDetails?.price ?? 0.0) * cartProduct.quantity;
 
@@ -358,9 +280,9 @@ class _CartPageState extends State<CartPage> {
           // Quantity Controls and Remove Button
           Column(
             children: [
-              _buildQuantityControls(cartProduct),
+              _buildQuantityControls(cart, cartProduct),
               const AppSpacer(size: AppSpacerSize.small),
-              _buildRemoveButton(cartProduct),
+              _buildRemoveButton(context, cart, cartProduct),
             ],
           ),
         ],
@@ -369,7 +291,7 @@ class _CartPageState extends State<CartPage> {
   }
 
   /// MOLECULE: Quantity controls
-  Widget _buildQuantityControls(Products cartProduct) {
+  Widget _buildQuantityControls(Cart cart, Products cartProduct) {
     return AppCard(
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -379,6 +301,7 @@ class _CartPageState extends State<CartPage> {
             icon: Icons.remove,
             onPressed: cartProduct.quantity > 1
                 ? () => _updateQuantity(
+                    cart.id!,
                     cartProduct.productId,
                     cartProduct.quantity - 1,
                   )
@@ -399,6 +322,7 @@ class _CartPageState extends State<CartPage> {
           _buildQuantityButton(
             icon: Icons.add,
             onPressed: () => _updateQuantity(
+              cart.id!,
               cartProduct.productId,
               cartProduct.quantity + 1,
             ),
@@ -416,33 +340,32 @@ class _CartPageState extends State<CartPage> {
     return SizedBox(
       width: 36,
       height: 36,
-      child: IconButton(
+      child: AppButton(
+        text: '',
         onPressed: onPressed,
-        icon: AppIcon(
-          icon,
-          size: AppIconSize.small,
-        ),
-        padding: EdgeInsets.zero,
+        variant: AppButtonVariant.outline,
+        icon: icon,
       ),
     );
   }
 
   /// ATOM: Remove button
-  Widget _buildRemoveButton(Products cartProduct) {
-    return IconButton(
-      onPressed: () => _showRemoveDialog(cartProduct),
-      icon: const AppIcon(
-        Icons.delete_outline,
-        color: Colors.red,
-        size: AppIconSize.small,
-      ),
+  Widget _buildRemoveButton(BuildContext context, Cart cart, Products cartProduct) {
+    return AppButton(
+      text: '',
+      onPressed: () => _showRemoveDialog(context, cart, cartProduct),
+      variant: AppButtonVariant.outline,
+      icon: Icons.delete_outline,
     );
   }
 
   /// MOLECULE: Fixed bottom bar with totals and actions
-  Widget _buildBottomBar() {
-    final total = _calculateTotal();
-    
+  Widget _buildBottomBar(BuildContext context, Cart cart) {
+    final total = cart.products?.fold(0.0, (sum, product) {
+      final price = product.productDetails?.price ?? 0.0;
+      return sum + (price * product.quantity);
+    }) ?? 0.0;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -484,7 +407,7 @@ class _CartPageState extends State<CartPage> {
                     child: AppButton(
                       text: 'Checkout',
                       variant: AppButtonVariant.primary,
-                      onPressed: _handleCheckout,
+                      onPressed: () => _handleCheckout(context, cart),
                     ),
                   ),
                 ],
@@ -497,7 +420,7 @@ class _CartPageState extends State<CartPage> {
   }
 
   /// Show remove item confirmation dialog
-  void _showRemoveDialog(Products cartProduct) {
+  void _showRemoveDialog(BuildContext context, Cart cart, Products cartProduct) {
     AppDialog.show(
       context: context,
       title: 'Remove Item',
@@ -514,7 +437,7 @@ class _CartPageState extends State<CartPage> {
           variant: AppButtonVariant.primary,
           onPressed: () {
             Navigator.pop(context);
-            _removeProduct(cartProduct.productId);
+            _removeProduct(cart.id!, cartProduct.productId);
           },
         ),
       ],
@@ -522,11 +445,17 @@ class _CartPageState extends State<CartPage> {
   }
 
   /// Handle checkout action
-  void _handleCheckout() {
+  void _handleCheckout(BuildContext context, Cart cart) {
+    final totalItems = cart.products?.fold(0, (sum, product) => sum + product.quantity) ?? 0;
+    final total = cart.products?.fold(0.0, (sum, product) {
+      final price = product.productDetails?.price ?? 0.0;
+      return sum + (price * product.quantity);
+    }) ?? 0.0;
+
     AppDialog.show(
       context: context,
       title: 'Checkout',
-      content: AppText('Order Summary:\n\nItems: ${_getTotalItems()}\nTotal: \$${_calculateTotal().toStringAsFixed(2)}\n\nCheckout functionality will be implemented here.'),
+      content: AppText('Order Summary:\n\nItems: $totalItems\nTotal: \$${total.toStringAsFixed(2)}\n\nCheckout functionality will be implemented here.'),
       actions: [
         AppButton(
           text: 'OK',

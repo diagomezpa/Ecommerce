@@ -340,7 +340,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const CartPage(),
+        builder: (context) => CartPage(
+          cartBloc: initializeCartBloc((state) {}),
+        ),
       ),
     );
   }

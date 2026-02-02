@@ -149,7 +149,11 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const CartPage()),
+              MaterialPageRoute(
+                builder: (context) => CartPage(
+                  cartBloc: initializeCartBloc((state) {}),
+                ),
+              ),
             ),
             icon: const Icon(Icons.shopping_cart),
             tooltip: 'Shopping Cart',
@@ -362,7 +366,11 @@ class _QuickActionsSection extends StatelessWidget {
               subtitle: 'View your items',
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const CartPage()),
+                MaterialPageRoute(
+                  builder: (context) => CartPage(
+                    cartBloc: initializeCartBloc((state) {}),
+                  ),
+                ),
               ),
             ),
           ],
