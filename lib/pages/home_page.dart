@@ -5,6 +5,7 @@ import 'product_detail_page.dart';
 import 'product_list_page.dart';
 import 'search_page.dart';
 import 'cart_page.dart';
+import 'support_page.dart';
 
 /// HomePage - Main entry point for the eCommerce application
 ///
@@ -359,19 +360,39 @@ class _QuickActionsSection extends StatelessWidget {
             // ATOM: Vertical spacing
             const AppSpacer(size: AppSpacerSize.medium),
             
-            // Cart access card (full width)
-            _QuickActionCard(
-              icon: Icons.shopping_cart,
-              title: 'Shopping Cart',
-              subtitle: 'View your items',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartPage(
-                    cartBloc: initializeCartBloc((state) {}),
+            // Cart and Support cards row
+            Row(
+              children: [
+                // Cart access card
+                Expanded(
+                  child: _QuickActionCard(
+                    icon: Icons.shopping_cart,
+                    title: 'Shopping Cart',
+                    subtitle: 'View your items',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CartPage(
+                          cartBloc: initializeCartBloc((state) {}),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                
+                // ATOM: Horizontal spacing
+                const AppSpacer(size: AppSpacerSize.medium),
+                
+                // Support access card
+                Expanded(
+                  child: _QuickActionCard(
+                    icon: Icons.support_agent,
+                    title: 'Support',
+                    subtitle: 'Get help',
+                    onTap: () => _navigateToSupport(context),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -395,6 +416,16 @@ class _QuickActionsSection extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => SearchPage(products: allProducts),
+      ),
+    );
+  }
+
+  /// Navigate to support page
+  void _navigateToSupport(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SupportPage(),
       ),
     );
   }
