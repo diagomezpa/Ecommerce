@@ -52,14 +52,16 @@ Este proyecto depende de dos paquetes desarrollados localmente:
 
 ---
 
-## 🧩 1. Estructura General de la Aplicación
+## 🧩 1. Arquitectura y Estructura del Proyecto
 
 La aplicación eCommerce fue desarrollada siguiendo principios de **Clean Architecture** y separación clara de responsabilidades, utilizando dos paquetes propios:
 
 - **`pragma_design_system`** → Sistema de diseño reusable
 - **`fake_maker_api_pragma_api`** → Consumo de la Fake Store API con casos de uso y BLoC
 
-Esto permite que el proyecto principal se enfoque únicamente en la composición de pantallas y el flujo comercial.
+Esto permite que el proyecto principal se enfoque únicamente en la composición de pantallas, navegación y flujo comercial, delegando completamente la UI y la lógica a los paquetes reutilizables.
+
+El proyecto principal no conoce detalles de implementación del dominio ni del diseño, únicamente consume contratos expuestos por los paquetes.
 
 ```
 pragma_app_shell/
@@ -136,6 +138,8 @@ Esto permite que el eCommerce sea un **cliente del dominio**, no su dueño.
 
 ## 🔄 5. Flujo de la Aplicación (alto nivel)
 
+El siguiente flujo corresponde al comportamiento real implementado en las pantallas y representado en el diagrama incluido en esta documentación.
+
 1. Usuario entra a **Home**
 2. Navega al **catálogo**
 3. Ve **detalles del producto**
@@ -161,7 +165,7 @@ La app demuestra cómo consumir paquetes internos como si fueran librerías exte
 ### ✅ Manejo de estados con BLoC provisto por el paquete API
 El eCommerce no implementa su propio BLoC.
 
-### 🏗️ Separación Real de Capas
+### 🏗️ Separación de Capas basada en Clean Architecture
 
 | Capa | Paquete/Módulo | Responsabilidades | Tecnologías |
 |------|----------------|-------------------|-------------|
@@ -186,6 +190,8 @@ La aplicación fue construida utilizando:
 - `Flexible`
 - `SingleChildScrollView`
 - Componentes adaptables del Design System
+
+El comportamiento responsive no depende de media queries manuales, sino de la composición flexible de los componentes del Design System.
 
 Permitiendo que funcione correctamente en **diferentes tamaños de pantalla y orientaciones**.
 
@@ -240,6 +246,18 @@ Permitiendo que funcione correctamente en **diferentes tamaños de pantalla y or
 
 ---
 
+## 🧪 Consideraciones de Testabilidad
+
+✅ **Cada capa puede ser testeada de forma independiente.**
+
+✅ **El Design System puede validarse visualmente sin depender del eCommerce.**
+
+✅ **Los casos de uso y BLoC pueden probarse sin UI.**
+
+✅ **El eCommerce puede probarse con mocks del paquete API sin modificar su código.**
+
+---
+
 ## 🏁 10. Conclusión
 
 Esta aplicación demuestra:
@@ -249,5 +267,7 @@ Esta aplicación demuestra:
 - **Separación de responsabilidades**
 - **Consistencia visual**
 - **Flujo comercial completo de un eCommerce**
+
+Este proyecto no demuestra cómo construir pantallas, demuestra cómo diseñar software preparado para crecer.
 
 > *"Esta persona no hizo una app… diseñó un sistema."*
