@@ -37,13 +37,11 @@ dependencies:
   
   # Local packages
   pragma_design_system:
-    git:
-      url: https://github.com/diagomezpa/pragma_design_system
+    path: ../pragma_design_system
   
   fake_maker_api_pragma_api:
-    git:
-      url: https://github.com/diagomezpa/packagePragma
-
+    path: ../packagePragma
+    
 dev_dependencies:
   flutter_test:
     sdk: flutter

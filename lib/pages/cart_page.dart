@@ -234,54 +234,97 @@ class CartPage extends StatelessWidget {
     final subtotal = (productDetails?.price ?? 0.0) * cartProduct.quantity;
 
     return AppCard(
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product Image
-          AppImage(
-            imageUrl: productDetails?.image ?? '',
-            width: 80,
-            height: 80,
-            fit: BoxFit.contain,
+          // Top section: Image and Product Details
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Product Image
+              AppImage(
+                imageUrl: productDetails?.image ?? '',
+                width: 80,
+                height: 80,
+                fit: BoxFit.contain,
+              ),
+              
+              const AppSpacer(size: AppSpacerSize.medium),
+              
+              // Product Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppText(
+                      productDetails?.title ?? 'Product ID: ${cartProduct.productId}',
+                      variant: AppTextVariant.titleSmall,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    const AppSpacer(size: AppSpacerSize.small),
+                    
+                    AppPrice(
+                      value: productDetails?.price ?? 0.0,
+                    ),
+                    
+                    const AppSpacer(size: AppSpacerSize.small),
+                    
+                    AppText(
+                      'Subtotal: \$${subtotal.toStringAsFixed(2)}',
+                      variant: AppTextVariant.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           
           const AppSpacer(size: AppSpacerSize.medium),
           
-          // Product Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppText(
-                  productDetails?.title ?? 'Product ID: ${cartProduct.productId}',
-                  variant: AppTextVariant.titleSmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                
-                const AppSpacer(size: AppSpacerSize.small),
-                
-                AppPrice(
-                  value: productDetails?.price ?? 0.0,
-                ),
-                
-                const AppSpacer(size: AppSpacerSize.small),
-                
-                AppText(
-                  'Subtotal: \$${subtotal.toStringAsFixed(2)}',
+          // Bottom section: Controls in a row
+          Row(
+            children: [
+              // Decrease button
+              _buildQuantityButton(
+                icon: Icons.remove,
+                onPressed: cartProduct.quantity > 1
+                    ? () => _updateQuantity(
+                        cart.id!,
+                        cartProduct.productId,
+                        cartProduct.quantity - 1,
+                      )
+                    : null,
+              ),
+              
+              const AppSpacer(size: AppSpacerSize.small),
+              
+              // Quantity display
+              Container(
+                width: 40,
+                alignment: Alignment.center,
+                child: AppText(
+                  cartProduct.quantity.toString(),
                   variant: AppTextVariant.bodyMedium,
                 ),
-              ],
-            ),
-          ),
-          
-          const AppSpacer(size: AppSpacerSize.medium),
-          
-          // Quantity Controls and Remove Button
-          Column(
-            children: [
-              _buildQuantityControls(cart, cartProduct),
+              ),
+              
               const AppSpacer(size: AppSpacerSize.small),
+              
+              // Increase button
+              _buildQuantityButton(
+                icon: Icons.add,
+                onPressed: () => _updateQuantity(
+                  cart.id!,
+                  cartProduct.productId,
+                  cartProduct.quantity + 1,
+                ),
+              ),
+              
+              const Spacer(),
+              
+              // Remove button
               _buildRemoveButton(context, cart, cartProduct),
             ],
           ),
@@ -290,65 +333,20 @@ class CartPage extends StatelessWidget {
     );
   }
 
-  /// MOLECULE: Quantity controls
-  Widget _buildQuantityControls(Cart cart, Products cartProduct) {
-    return AppCard(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Decrease button
-          _buildQuantityButton(
-            icon: Icons.remove,
-            onPressed: cartProduct.quantity > 1
-                ? () => _updateQuantity(
-                    cart.id!,
-                    cartProduct.productId,
-                    cartProduct.quantity - 1,
-                  )
-                : null,
-          ),
-          
-          // Quantity display
-          Container(
-            width: 40,
-            alignment: Alignment.center,
-            child: AppText(
-              cartProduct.quantity.toString(),
-              variant: AppTextVariant.bodyMedium,
-            ),
-          ),
-          
-          // Increase button
-          _buildQuantityButton(
-            icon: Icons.add,
-            onPressed: () => _updateQuantity(
-              cart.id!,
-              cartProduct.productId,
-              cartProduct.quantity + 1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// ATOM: Individual quantity button
-  Widget _buildQuantityButton({
-    required IconData icon,
-    required VoidCallback? onPressed,
-  }) {
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: AppButton(
-        text: '',
-        onPressed: onPressed,
-        variant: AppButtonVariant.outline,
-        icon: icon,
-      ),
-    );
-  }
-
+Widget _buildQuantityButton({
+  required IconData icon,
+  required VoidCallback? onPressed,
+}) {
+  return AppButton(
+    onPressed: onPressed,
+    text: '', // No importa el texto, no se mostrará
+    icon: icon,
+    variant: AppButtonVariant.outline,
+    size: AppButtonSize.extraSmall, // ← Ahora 24x24px
+    isEnabled: onPressed != null,
+  );
+}
   /// ATOM: Remove button
   Widget _buildRemoveButton(BuildContext context, Cart cart, Products cartProduct) {
     return AppButton(
