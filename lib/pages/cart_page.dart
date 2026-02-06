@@ -399,7 +399,7 @@ Widget _buildQuantityButton({
                     ),
                   ),
                   
-                  const AppSpacer(size: AppSpacerSize.medium),
+                  const SizedBox(width: 16),
                   
                   Expanded(
                     child: AppButton(
