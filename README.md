@@ -4,6 +4,54 @@
 
 ---
 
+## 🚀 Cómo ejecutar el proyecto
+
+### Requisitos previos
+- **Flutter SDK**: 3.7.2 o superior
+- **Dart SDK**: Incluido con Flutter
+- **Android Studio** / **VS Code** con extensiones de Flutter
+- **Dispositivo Android/iOS** o **Emulador**
+
+### Dependencias de paquetes locales
+Este proyecto depende de dos paquetes desarrollados localmente:
+- **`pragma_design_system`** - Sistema de diseño reusable
+- **`fake_maker_api_pragma_api`** - Manejo de API y lógica de negocio
+
+⚠️ Los paquetes `pragma_design_system` y `fake_maker_api_pragma_api` deben estar al mismo nivel del proyecto o correctamente referenciados por path en el pubspec.yaml.
+
+### Pasos para ejecutar
+1. **Clonar el repositorio y paquetes dependientes**
+   ```bash
+   git clone <repository-url>
+   cd pragma_app_shell
+   ```
+
+2. **Instalar dependencias**
+   ```bash
+   flutter pub get
+   ```
+
+3. **Ejecutar la aplicación**
+   ```bash
+   flutter run
+   ```
+
+4. **Para compilar para producción**
+   ```bash
+   flutter build apk --release
+   flutter build ios --release
+   ```
+
+---
+
+## 📋 Diagrama de Flujo de la Aplicación
+
+<img src="docs/flow_diagram.png" width="800" alt="Application Flow Diagram">
+
+*Diagrama que muestra el flujo completo de navegación y interacción del usuario en la aplicación eCommerce*
+
+---
+
 ## 🧩 1. Estructura General de la Aplicación
 
 La aplicación eCommerce fue desarrollada siguiendo principios de **Clean Architecture** y separación clara de responsabilidades, utilizando dos paquetes propios:
@@ -16,7 +64,13 @@ Esto permite que el proyecto principal se enfoque únicamente en la composición
 ```
 pragma_app_shell/
  ├── pages/
- ├── widgets/
+ │    ├── home/
+ │    ├── catalog/
+ │    ├── product_detail/
+ │    ├── cart/
+ │    ├── login/
+ │    └── support/
+ ├── routes/
  ├── main.dart
 ```
 
@@ -107,6 +161,21 @@ La app demuestra cómo consumir paquetes internos como si fueran librerías exte
 ### ✅ Manejo de estados con BLoC provisto por el paquete API
 El eCommerce no implementa su propio BLoC.
 
+### 🏗️ Separación Real de Capas
+
+| Capa | Paquete/Módulo | Responsabilidades | Tecnologías |
+|------|----------------|-------------------|-------------|
+| **UI/Presentación** | `pragma_app_shell` | • Composición de pantallas<br>• Navegación entre páginas<br>• Manejo de rutas<br>• Integración de componentes | Flutter Widgets, Navigation |
+| **Sistema de Diseño** | `pragma_design_system` | • Componentes UI reutilizables<br>• Tokens de diseño<br>• Consistencia visual<br>• Temas y estilos | Custom Flutter Components |
+| **Dominio/Lógica** | `fake_maker_api_pragma_api` | • Casos de uso<br>• Entidades de negocio<br>• Reglas de negocio<br>• Gestión de estados | BLoC, Use Cases, Entities |
+| **Datos/API** | `fake_maker_api_pragma_api` | • Consumo de APIs<br>• Modelos de datos<br>• Repositorios<br>• Manejo de errores | HTTP, JSON, Repository Pattern |
+
+**Ventajas de esta separación:**
+- ✅ **Mantenibilidad**: Cada capa tiene responsabilidades claras
+- ✅ **Escalabilidad**: Fácil agregar nuevas funcionalidades
+- ✅ **Testabilidad**: Cada capa se puede testear independientemente
+- ✅ **Reutilización**: Los paquetes pueden usarse en otros proyectos
+
 ---
 
 ## 📱 7. Responsive Design
@@ -156,6 +225,18 @@ Permitiendo que funcione correctamente en **diferentes tamaños de pantalla y or
 <img src="docs/screenshots/cart_page.png" width="300" alt="Shopping Cart">
 
 *Gestión completa del carrito con cantidades y totales*
+
+---
+
+## 🧠 Decisiones Arquitectónicas que Demuestran Escalabilidad
+
+✅ **El eCommerce podría cambiar completamente de API sin modificar la UI.**
+
+✅ **El Design System podría usarse en una app diferente sin cambios.**
+
+✅ **La lógica de negocio podría exponerse a una app móvil, web o backend sin modificaciones.**
+
+✅ **El proyecto demuestra cómo diseñar software pensando en reutilización real y separación total de capas.**
 
 ---
 
