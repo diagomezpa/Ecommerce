@@ -76,9 +76,11 @@ packages:
   fake_maker_api_pragma_api:
     dependency: "direct main"
     description:
-      path: "../packagePragma"
-      relative: true
-    source: path
+      path: "."
+      ref: HEAD
+      resolved-ref: b1403a8c2d6c95049d99117fcaa6e2dc0c96f51c
+      url: "https://github.com/diagomezpa/packagePragma"
+    source: git
     version: "0.0.1"
   flutter:
     dependency: "direct main"
@@ -181,9 +183,11 @@ packages:
   pragma_design_system:
     dependency: "direct main"
     description:
-      path: "../pragma_design_system"
-      relative: true
-    source: path
+      path: "."
+      ref: HEAD
+      resolved-ref: fbcfe752ce859de1d964f3250407d1684ea3f379
+      url: "https://github.com/diagomezpa/pragma_design_system"
+    source: git
     version: "1.0.0"
   sky_engine:
     dependency: transitive
