@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
+import '../helpers/cart_calculation_helper.dart';
 
 /// CartPage - Shopping cart management for the eCommerce application
 ///
@@ -169,11 +170,7 @@ class CartPage extends StatelessWidget {
 
   /// MOLECULE: Cart header with summary info
   Widget _buildCartHeader(Cart cart) {
-    final totalItems = cart.products?.fold(0, (sum, product) => sum + product.quantity) ?? 0;
-    final total = cart.products?.fold(0.0, (sum, product) {
-      final price = product.productDetails?.price ?? 0.0;
-      return sum + (price * product.quantity);
-    }) ?? 0.0;
+    final summary = CartCalculationHelper.getCartSummary(cart);
 
     return AppSection(
       title: 'Cart Summary',
@@ -188,18 +185,18 @@ class CartPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AppText(
-                      '$totalItems items',
+                      summary.formattedItemsCount,
                       variant: AppTextVariant.titleMedium,
                     ),
                     const AppSpacer(size: AppSpacerSize.extraSmall),
                     AppText(
-                      'Cart ID: ${cart.id ?? 'N/A'}',
+                      'Cart ID: ${summary.cartId}',
                       variant: AppTextVariant.bodySmall,
                     ),
                   ],
                 ),
                 AppPrice(
-                  value: total,
+                  value: summary.totalPrice,
                   highlight: true,
                 ),
               ],
@@ -231,7 +228,7 @@ class CartPage extends StatelessWidget {
   /// ORGANISM: Individual cart item
   Widget _buildCartItem(BuildContext context, Cart cart, Products cartProduct) {
     final productDetails = cartProduct.productDetails;
-    final subtotal = (productDetails?.price ?? 0.0) * cartProduct.quantity;
+    final subtotal = CartCalculationHelper.calculateItemSubtotal(cartProduct);
 
     return AppCard(
       child: Column(
@@ -359,10 +356,7 @@ Widget _buildQuantityButton({
 
   /// MOLECULE: Fixed bottom bar with totals and actions
   Widget _buildBottomBar(BuildContext context, Cart cart) {
-    final total = cart.products?.fold(0.0, (sum, product) {
-      final price = product.productDetails?.price ?? 0.0;
-      return sum + (price * product.quantity);
-    }) ?? 0.0;
+    final total = CartCalculationHelper.calculateCartTotal(cart);
 
     return SafeArea(
       child: Padding(
@@ -444,16 +438,12 @@ Widget _buildQuantityButton({
 
   /// Handle checkout action
   void _handleCheckout(BuildContext context, Cart cart) {
-    final totalItems = cart.products?.fold(0, (sum, product) => sum + product.quantity) ?? 0;
-    final total = cart.products?.fold(0.0, (sum, product) {
-      final price = product.productDetails?.price ?? 0.0;
-      return sum + (price * product.quantity);
-    }) ?? 0.0;
+    final summary = CartCalculationHelper.getCartSummary(cart);
 
     AppDialog.show(
       context: context,
       title: 'Checkout',
-      content: AppText('Order Summary:\n\nItems: $totalItems\nTotal: \$${total.toStringAsFixed(2)}\n\nCheckout functionality will be implemented here.'),
+      content: AppText('Order Summary:\n\n${summary.formattedItemsCount}\nTotal: \$${summary.formattedTotal}\n\nCheckout functionality will be implemented here.'),
       actions: [
         AppButton(
           text: 'OK',

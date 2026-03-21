@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
 import 'cart_page.dart';
+import '../extensions/category_extensions.dart';
 
 /// ProductDetailPage - A comprehensive product detail view for eCommerce
 ///
@@ -265,7 +266,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       width: 120, // Technical constraint only
       child: AppCard(
         child: AppText(
-          _formatCategoryName(product.category),
+          product.category.displayName,
           variant: AppTextVariant.bodyMedium,
           textAlign: TextAlign.center,
         ),
@@ -345,19 +346,5 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         ),
       ),
     );
-  }
-
-  /// Formats the category enum to a readable string
-  String _formatCategoryName(Category category) {
-    switch (category) {
-      case Category.ELECTRONICS:
-        return 'Electronics';
-      case Category.JEWELERY:
-        return 'Jewelry';
-      case Category.MENS_CLOTHING:
-        return "Men's Clothing";
-      case Category.WOMENS_CLOTHING:
-        return "Women's Clothing";
-    }
   }
 }

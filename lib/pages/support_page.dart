@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
+import '../helpers/support_form_validation_helper.dart';
 
 /// SupportPage - Customer support and contact page for the eCommerce application
 ///
@@ -55,13 +56,19 @@ class _SupportPageState extends State<SupportPage> {
 
   /// Validates all form fields
   bool _validateForm() {
+    final validationResult = SupportFormValidationHelper.validateSupportForm(
+      name: _nameController.text,
+      email: _emailController.text,
+      message: _messageController.text,
+    );
+
     setState(() {
-      _nameError = _nameController.text.trim().isEmpty ? 'Name is required' : null;
-      _emailError = _emailController.text.trim().isEmpty ? 'Email is required' : null;
-      _messageError = _messageController.text.trim().isEmpty ? 'Message is required' : null;
+      _nameError = validationResult.nameError;
+      _emailError = validationResult.emailError;
+      _messageError = validationResult.messageError;
     });
 
-    return _nameError == null && _emailError == null && _messageError == null;
+    return validationResult.isValid;
   }
 
   /// Handles form submission

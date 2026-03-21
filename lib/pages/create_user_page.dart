@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
 import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import '../services/user_session.dart';
+import '../helpers/form_validation_helper.dart';
+import '../helpers/user_creation_helper.dart';
+import '../helpers/user_message_helper.dart';
 
 /// CreateUserPage - User registration page for the eCommerce application
 ///
@@ -84,7 +87,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
   }
 
   void _handleCreateUser() {
-    // Validate form
+    // Validate form using helper
     if (!_validateForm()) {
       setState(() {}); // Trigger rebuild to show validation messages
       return;
@@ -95,18 +98,13 @@ class _CreateUserPageState extends State<CreateUserPage> {
       _userError = null;
     });
 
-    // Build User object with API-compatible data only
-    final user = User(
-      id: null, // API will assign ID
-      email: _emailController.text.trim(),
-      username: _usernameController.text.trim(),
-      password: _passwordController.text.trim(),
-      name: Name(
-        firstname: '', // Empty string since API doesn't use it
-        lastname: '', // Empty string since API doesn't use it
-      ),
-      phone: null, // Not required by API
-      address: null, // Not required by API
+    // Build User object using helper
+    final user = UserCreationHelper.createUserFromFormData(
+      firstname: _firstnameController.text,
+      lastname: _lastnameController.text,
+      email: _emailController.text,
+      username: _usernameController.text,
+      password: _passwordController.text,
     );
 
     // Create user using UserBloc
@@ -114,20 +112,30 @@ class _CreateUserPageState extends State<CreateUserPage> {
   }
 
   void _handleUserCreationSuccess() {
-    // Store user in session for persistence
+    // Store user in session for persistence using helper
     try {
       final userSession = UserSession();
-      userSession.addUser(_createdUser!);
+      final userForStorage = UserCreationHelper.createUserWithFormData(
+        firstname: _firstnameController.text,
+        lastname: _lastnameController.text,
+        email: _emailController.text,
+        username: _usernameController.text,
+        password: _passwordController.text,
+      );
+      userSession.addUser(userForStorage);
     } catch (e) {
       // User might already exist (rare edge case)
-      print('UserSession warning: ${e.toString()}');
+      print('${UserSessionMessages.sessionWarningPrefix} ${e.toString()}');
     }
 
     // Clear form
     _clearForm();
 
-    // Show success snackbar
-    AppSnackbar.success(context, message: 'User created! You can now log in.');
+    // Show success snackbar using helper
+    AppSnackbar.success(
+      context,
+      message: UserMessageHelper.getSuccessSnackbarMessage(),
+    );
 
     // Show user details dialog
     _showUserCreatedDialog();
@@ -136,7 +144,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
   void _handleUserCreationError() {
     AppSnackbar.error(
       context,
-      message: _userError ?? 'Failed to create user. Please try again.',
+      message: UserMessageHelper.getErrorSnackbarMessage(_userError),
     );
   }
 
@@ -145,13 +153,13 @@ class _CreateUserPageState extends State<CreateUserPage> {
 
     AppDialog.show(
       context: context,
-      title: 'User Created Successfully!',
+      title: UserMessageHelper.getSuccessDialogTitle(),
       content: AppText(
-        'Your account has been created successfully!\n\nYou can now sign in with your new credentials.\n\nUser Details:\nID: ${_createdUser!.id ?? "Auto-generated"}\nUsername: ${_createdUser!.username ?? "N/A"}\nEmail: ${_createdUser!.email ?? "N/A"}',
+        UserMessageHelper.getSuccessDialogContent(_createdUser!),
       ),
       actions: [
         AppButton(
-          text: 'Go to Login',
+          text: UserMessageHelper.getSuccessDialogActionText(),
           variant: AppButtonVariant.primary,
           onPressed: () {
             Navigator.pop(context); // Close dialog
@@ -163,11 +171,13 @@ class _CreateUserPageState extends State<CreateUserPage> {
   }
 
   bool _validateForm() {
-    return _validateFirstname(_firstnameController.text) == null &&
-        _validateLastname(_lastnameController.text) == null &&
-        _validateEmail(_emailController.text) == null &&
-        _validateUsername(_usernameController.text) == null &&
-        _validatePassword(_passwordController.text) == null;
+    return FormValidationHelper.validateUserRegistrationForm(
+      firstname: _firstnameController.text,
+      lastname: _lastnameController.text,
+      email: _emailController.text,
+      username: _usernameController.text,
+      password: _passwordController.text,
+    );
   }
 
   void _clearForm() {
@@ -176,58 +186,6 @@ class _CreateUserPageState extends State<CreateUserPage> {
     _emailController.clear();
     _usernameController.clear();
     _passwordController.clear();
-  }
-
-  // Validation methods
-  String? _validateFirstname(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your first name';
-    }
-    if (value.length < 2) {
-      return 'First name must be at least 2 characters';
-    }
-    return null;
-  }
-
-  String? _validateLastname(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your last name';
-    }
-    if (value.length < 2) {
-      return 'Last name must be at least 2 characters';
-    }
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your email';
-    }
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(value)) {
-      return 'Please enter a valid email address';
-    }
-    return null;
-  }
-
-  String? _validateUsername(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter a username';
-    }
-    if (value.length < 3) {
-      return 'Username must be at least 3 characters';
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter a password';
-    }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-    return null;
   }
 
   @override
@@ -334,7 +292,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
           label: 'First Name',
           hintText: 'Enter your first name',
           controller: _firstnameController,
-          validator: _validateFirstname,
+          validator: FormValidationHelper.validateFirstname,
         ),
 
         const AppSpacer(size: AppSpacerSize.large),
@@ -344,7 +302,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
           label: 'Last Name',
           hintText: 'Enter your last name',
           controller: _lastnameController,
-          validator: _validateLastname,
+          validator: FormValidationHelper.validateLastname,
         ),
       ],
     );
@@ -361,7 +319,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
           label: 'Email',
           hintText: 'Enter your email address',
           controller: _emailController,
-          validator: _validateEmail,
+          validator: FormValidationHelper.validateEmail,
           keyboardType: TextInputType.emailAddress,
         ),
 
@@ -372,7 +330,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
           label: 'Username',
           hintText: 'Choose a username',
           controller: _usernameController,
-          validator: _validateUsername,
+          validator: FormValidationHelper.validateUsername,
         ),
 
         const AppSpacer(size: AppSpacerSize.large),
@@ -382,7 +340,7 @@ class _CreateUserPageState extends State<CreateUserPage> {
           label: 'Password',
           hintText: 'Create a secure password',
           controller: _passwordController,
-          validator: _validatePassword,
+          validator: FormValidationHelper.validatePassword,
           obscureText: true,
         ),
       ],

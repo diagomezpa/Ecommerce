@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
 import 'product_detail_page.dart';
+import '../extensions/category_extensions.dart';
+import '../helpers/product_filter_helper.dart';
 
 /// SearchPage - Product search functionality using local filtering
 ///
@@ -105,7 +107,7 @@ class _SearchController {
 
   /// Handle search text changes with filtering logic
   void _onSearchChanged() {
-    final query = textController.text.trim().toLowerCase();
+    final query = textController.text.trim();
     _searchQuery.value = query;
     
     if (query.isEmpty) {
@@ -113,14 +115,8 @@ class _SearchController {
       return;
     }
 
-    // Local filtering by name and description
-    final filtered = _allProducts.where((product) {
-      final titleMatch = product.title.toLowerCase().contains(query);
-      final descriptionMatch = product.description.toLowerCase().contains(query);
-      return titleMatch || descriptionMatch;
-    }).toList();
-
-    _filteredProducts.value = filtered;
+    // Use ProductFilterHelper for consistent filtering logic
+    _filteredProducts.value = ProductFilterHelper.filterBySearchText(_allProducts, query);
   }
 
   void dispose() {
@@ -250,7 +246,7 @@ class _SearchResultsState extends State<_SearchResults> {
           products: products
               .map((product) => AppProductListItem(
                     title: product.title,
-                    subtitle: _formatCategoryName(product.category),
+                    subtitle: product.category.displayName,
                     price: '\$${product.price.toStringAsFixed(2)}',
                     imageUrl: product.image,
                     isEnabled: true,
@@ -293,19 +289,5 @@ class _SearchResultsState extends State<_SearchResults> {
         builder: (context) => ProductDetailPage(productId: product.id),
       ),
     );
-  }
-
-  /// Format category enum to readable string using design system patterns
-  String _formatCategoryName(Category category) {
-    switch (category) {
-      case Category.ELECTRONICS:
-        return 'Electronics';
-      case Category.JEWELERY:
-        return 'Jewelry';
-      case Category.MENS_CLOTHING:
-        return "Men's Clothing";
-      case Category.WOMENS_CLOTHING:
-        return "Women's Clothing";
-    }
   }
 }

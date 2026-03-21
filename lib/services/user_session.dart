@@ -214,7 +214,6 @@ class UserSession {
 
     return _users.where((user) {
       final name = user.name;
-      if (name == null) return false;
       
       final firstname = name.firstname.toLowerCase();
       final lastname = name.lastname.toLowerCase();

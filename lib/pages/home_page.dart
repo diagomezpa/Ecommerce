@@ -6,6 +6,7 @@ import 'product_list_page.dart';
 import 'search_page.dart';
 import 'cart_page.dart';
 import 'support_page.dart';
+import '../extensions/category_extensions.dart';
 
 /// HomePage - Main entry point for the eCommerce application
 ///
@@ -280,7 +281,7 @@ class _FeaturedProductsSection extends StatelessWidget {
               products: products
                   .map((product) => AppProductListItem(
                         title: product.title,
-                        subtitle: _formatCategoryName(product.category),
+                        subtitle: product.category.displayName,
                         price: '\$${product.price.toStringAsFixed(2)}',
                         imageUrl: product.image,
                         isEnabled: true,
@@ -292,20 +293,6 @@ class _FeaturedProductsSection extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// Formats the category enum to a readable string
-  String _formatCategoryName(Category category) {
-    switch (category) {
-      case Category.ELECTRONICS:
-        return 'Electronics';
-      case Category.JEWELERY:
-        return 'Jewelry';
-      case Category.MENS_CLOTHING:
-        return "Men's Clothing";
-      case Category.WOMENS_CLOTHING:
-        return "Women's Clothing";
-    }
   }
 }
 

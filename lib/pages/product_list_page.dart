@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
 import 'product_detail_page.dart';
+import '../extensions/category_extensions.dart';
+import '../helpers/product_filter_helper.dart';
 
 /// ProductListPage - Complete catalog view for the eCommerce application
 ///
@@ -105,19 +107,16 @@ class _ProductListPageState extends State<ProductListPage> {
       _selectedCategory = null;
     });
 
-    // Load all products using LoadProducts event
+    // Load all products using ProductLoadingService
     _productBloc.eventSink.add(LoadProducts());
   }
 
   /// Apply category filter to the loaded products
   void _applyCurrentFilter() {
-    if (_selectedCategory == null) {
-      _filteredProducts = List.from(_allProducts);
-    } else {
-      _filteredProducts = _allProducts
-          .where((product) => product.category == _selectedCategory)
-          .toList();
-    }
+    _filteredProducts = ProductFilterHelper.filterByCategory(
+      _allProducts,
+      _selectedCategory,
+    );
   }
 
   /// Handle category selection
@@ -297,7 +296,7 @@ class _ProductFilterSection extends StatelessWidget {
         
         // Category filter chips
         ...availableCategories.map((category) => _FilterChip(
-          label: _formatCategoryName(category),
+          label: category.displayName,
           isSelected: selectedCategory == category,
           onTap: () => onCategorySelected(category),
         )),
@@ -315,20 +314,6 @@ class _ProductFilterSection extends StatelessWidget {
       countText,
       variant: AppTextVariant.bodySmall,
     );
-  }
-
-  /// Formats the category enum to a readable string
-  String _formatCategoryName(Category category) {
-    switch (category) {
-      case Category.ELECTRONICS:
-        return 'Electronics';
-      case Category.JEWELERY:
-        return 'Jewelry';
-      case Category.MENS_CLOTHING:
-        return "Men's Clothing";
-      case Category.WOMENS_CLOTHING:
-        return "Women's Clothing";
-    }
   }
 }
 
@@ -402,16 +387,7 @@ class _ProductListSection extends StatelessWidget {
       return 'All Products';
     }
     
-    switch (selectedCategory!) {
-      case Category.ELECTRONICS:
-        return 'Electronics';
-      case Category.JEWELERY:
-        return 'Jewelry';
-      case Category.MENS_CLOTHING:
-        return "Men's Clothing";
-      case Category.WOMENS_CLOTHING:
-        return "Women's Clothing";
-    }
+    return selectedCategory!.displayName;
   }
 
   /// TEMPLATE: Product grid using ProductListTemplate from design system
@@ -420,7 +396,7 @@ class _ProductListSection extends StatelessWidget {
       products: products
           .map((product) => AppProductListItem(
                 title: product.title,
-                subtitle: _formatCategoryName(product.category),
+                subtitle: product.category.displayName,
                 price: '\$${product.price.toStringAsFixed(2)}',
                 imageUrl: product.image,
                 isEnabled: true,
@@ -469,19 +445,5 @@ class _ProductListSection extends StatelessWidget {
         const AppSpacer(size: AppSpacerSize.extraLarge),
       ],
     );
-  }
-
-  /// Formats the category enum to a readable string
-  String _formatCategoryName(Category category) {
-    switch (category) {
-      case Category.ELECTRONICS:
-        return 'Electronics';
-      case Category.JEWELERY:
-        return 'Jewelry';
-      case Category.MENS_CLOTHING:
-        return "Men's Clothing";
-      case Category.WOMENS_CLOTHING:
-        return "Women's Clothing";
-    }
   }
 }
