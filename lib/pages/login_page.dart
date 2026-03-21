@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pragma_design_system/pragma_design_system.dart';
 import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
+import '../services/user_session.dart';
 
 /// LoginPage - Authentication page for the eCommerce application
 ///
@@ -39,7 +40,7 @@ class _LoginPageState extends State<LoginPage> {
   late final AuthBloc authBloc;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+
   String? _authToken;
   String? _authError;
   bool _isLoading = false;
@@ -64,6 +65,8 @@ class _LoginPageState extends State<LoginPage> {
         } else if (authResult is String) {
           _authError = authResult;
           _authToken = null;
+          // Try UserSession as fallback if API login failed
+          _tryUserSessionLogin();
         }
       });
     });
@@ -72,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
   void _handleLogin() {
     final usernameError = _validateUsername(_usernameController.text);
     final passwordError = _validatePassword(_passwordController.text);
-    
+
     // Check if there are validation errors
     if (usernameError != null || passwordError != null) {
       setState(() {
@@ -85,12 +88,14 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true;
       _authError = null;
     });
-    
+
     // Consumir API real de autenticación
-    authBloc.add(LoginEvent(
-      username: _usernameController.text.trim(),
-      password: _passwordController.text.trim(),
-    ));
+    authBloc.add(
+      LoginEvent(
+        username: _usernameController.text.trim(),
+        password: _passwordController.text.trim(),
+      ),
+    );
   }
 
   void _handleLoginSuccess() {
@@ -98,18 +103,64 @@ class _LoginPageState extends State<LoginPage> {
     AppDialog.show(
       context: context,
       title: 'Login Successful',
-      content: AppText('Welcome! You have been successfully logged in.\\n\\nToken: ${_authToken ?? "Not available"}'),
+      content: AppText(
+        'Welcome! You have been successfully logged in.\\n\\nToken: ${_authToken ?? "Not available"}',
+      ),
       actions: [
         AppButton(
           text: 'Continue',
           variant: AppButtonVariant.primary,
           onPressed: () {
             Navigator.pop(context); // Close dialog
-            Navigator.pushReplacementNamed(context, '/home'); // Navigate to home
+            Navigator.pushReplacementNamed(
+              context,
+              '/home',
+            ); // Navigate to home
           },
         ),
       ],
     );
+  }
+
+  /// Try logging in with UserSession (fallback when API fails)
+  void _tryUserSessionLogin() {
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+      return; // Don't try UserSession if fields are empty
+    }
+
+    final userSession = UserSession();
+    final user = userSession.findUser(
+      _usernameController.text.trim(),
+      _passwordController.text.trim(),
+    );
+
+    if (user != null) {
+      // Login successful with UserSession
+      setState(() {
+        _authError = null;
+        _authToken =
+            'session_${user.id}_${DateTime.now().millisecondsSinceEpoch}';
+      });
+
+      // Set current user in session
+      userSession.setCurrentUser(user);
+
+      // Show success message
+      AppSnackbar.success(context, message: 'Welcome back, ${user.username}!');
+
+      // Navigate to home after short delay
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      });
+    } else {
+      // Both API and UserSession failed
+      AppSnackbar.error(
+        context,
+        message: 'Invalid username or password. Please try again.',
+      );
+    }
   }
 
   String? _validateUsername(String? value) {
@@ -142,10 +193,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppPage(
-      title: 'Login',
-      body: _buildBody(),
-    );
+    return AppPage(title: 'Login', body: _buildBody());
   }
 
   Widget _buildBody() {
@@ -157,22 +205,22 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             // ATOM: Top spacing
             const AppSpacer(size: AppSpacerSize.extraLarge),
-            
+
             // MOLECULE: Welcome section
             _buildWelcomeSection(),
-            
+
             // ATOM: Section spacing
             const AppSpacer(size: AppSpacerSize.extraLarge),
-            
+
             // ORGANISM: Login form
             _buildLoginForm(),
-            
+
             // Error message display
             if (_authError != null) ...[
               const AppSpacer(size: AppSpacerSize.large),
               _buildErrorMessage(),
             ],
-            
+
             // Bottom spacing
             const AppSpacer(size: AppSpacerSize.extraLarge),
           ],
@@ -210,10 +258,7 @@ class _LoginPageState extends State<LoginPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppText(
-                'Username',
-                variant: AppTextVariant.labelLarge,
-              ),
+              AppText('Username', variant: AppTextVariant.labelLarge),
               const AppSpacer(size: AppSpacerSize.small),
               AppFormField(
                 controller: _usernameController,
@@ -221,7 +266,8 @@ class _LoginPageState extends State<LoginPage> {
                 enabled: !_isLoading,
               ),
               // Custom validation message
-              if (_usernameController.text.isNotEmpty && _validateUsername(_usernameController.text) != null)
+              if (_usernameController.text.isNotEmpty &&
+                  _validateUsername(_usernameController.text) != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: AppText(
@@ -231,17 +277,14 @@ class _LoginPageState extends State<LoginPage> {
                 ),
             ],
           ),
-          
+
           const AppSpacer(size: AppSpacerSize.large),
-          
+
           // Password field
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppText(
-                'Password',
-                variant: AppTextVariant.labelLarge,
-              ),
+              AppText('Password', variant: AppTextVariant.labelLarge),
               const AppSpacer(size: AppSpacerSize.small),
               AppFormField(
                 controller: _passwordController,
@@ -250,7 +293,8 @@ class _LoginPageState extends State<LoginPage> {
                 obscureText: true,
               ),
               // Custom validation message
-              if (_passwordController.text.isNotEmpty && _validatePassword(_passwordController.text) != null)
+              if (_passwordController.text.isNotEmpty &&
+                  _validatePassword(_passwordController.text) != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: AppText(
@@ -260,9 +304,9 @@ class _LoginPageState extends State<LoginPage> {
                 ),
             ],
           ),
-          
+
           const AppSpacer(size: AppSpacerSize.extraLarge),
-          
+
           // Login button
           AppButton(
             text: _isLoading ? 'Signing In...' : 'Sign In',
@@ -270,11 +314,16 @@ class _LoginPageState extends State<LoginPage> {
             onPressed: _isLoading ? null : _handleLogin,
             isLoading: _isLoading,
           ),
-          
+
           const AppSpacer(size: AppSpacerSize.medium),
-          
+
           // Demo credentials helper
           _buildDemoCredentials(),
+
+          const AppSpacer(size: AppSpacerSize.large),
+
+          // Create account link
+          _buildCreateAccountSection(),
         ],
       ),
     );
@@ -282,28 +331,51 @@ class _LoginPageState extends State<LoginPage> {
 
   /// MOLECULE: Demo credentials information
   Widget _buildDemoCredentials() {
+    final userSession = UserSession();
+    final localUsers = userSession.getAllUsers();
+
     return AppCard(
       child: Column(
         children: [
-          const AppText(
-            'Demo Credentials',
-            variant: AppTextVariant.titleSmall,
-          ),
+          const AppText('Demo Credentials', variant: AppTextVariant.titleSmall),
           const AppSpacer(size: AppSpacerSize.small),
-          const AppText(
-            'Username: johnd',
-            variant: AppTextVariant.bodySmall,
-          ),
+
+          // API Demo credentials
+          const AppText('API Demo:', variant: AppTextVariant.bodyMedium),
+          const AppText('Username: johnd', variant: AppTextVariant.bodySmall),
           const AppText(
             'Password: m38rmF\$',
             variant: AppTextVariant.bodySmall,
           ),
           const AppSpacer(size: AppSpacerSize.small),
           AppButton(
-            text: 'Use Demo Credentials',
+            text: 'Use API Demo Credentials',
             variant: AppButtonVariant.outline,
             onPressed: _isLoading ? null : _fillDemoCredentials,
           ),
+
+          // Local users section
+          if (localUsers.isNotEmpty) ...[
+            const AppSpacer(size: AppSpacerSize.medium),
+            AppText(
+              'Local Users (${localUsers.length}):',
+              variant: AppTextVariant.bodyMedium,
+            ),
+            const AppSpacer(size: AppSpacerSize.small),
+            ...localUsers
+                .take(3)
+                .map(
+                  (user) => AppText(
+                    '${user.username} / password123', // Default password for demo
+                    variant: AppTextVariant.bodySmall,
+                  ),
+                ),
+            if (localUsers.length > 3)
+              AppText(
+                '... and ${localUsers.length - 3} more',
+                variant: AppTextVariant.bodySmall,
+              ),
+          ],
         ],
       ),
     );
@@ -315,6 +387,27 @@ class _LoginPageState extends State<LoginPage> {
       _usernameController.text = 'johnd';
       _passwordController.text = 'm38rmF\$';
     });
+  }
+
+  /// MOLECULE: Create account section
+  Widget _buildCreateAccountSection() {
+    return Column(
+      children: [
+        AppText(
+          'Don\'t have an account?',
+          variant: AppTextVariant.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+        const AppSpacer(size: AppSpacerSize.small),
+        AppButton(
+          text: 'Create New Account',
+          variant: AppButtonVariant.text,
+          onPressed: () {
+            Navigator.pushNamed(context, '/create-user');
+          },
+        ),
+      ],
+    );
   }
 
   /// MOLECULE: Error message display
@@ -336,10 +429,7 @@ class _LoginPageState extends State<LoginPage> {
                   'Login Failed',
                   variant: AppTextVariant.titleSmall,
                 ),
-                AppText(
-                  _authError!,
-                  variant: AppTextVariant.bodyMedium,
-                ),
+                AppText(_authError!, variant: AppTextVariant.bodyMedium),
               ],
             ),
           ),
