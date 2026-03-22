@@ -46,7 +46,17 @@ Este proyecto depende de dos paquetes desarrollados localmente:
 
 ## 📋 Diagrama de Flujo de la Aplicación
 
-<img src="docs/flow_diagram.png" width="800" alt="Application Flow Diagram">
+<img src="flujo.jpg" width="800" alt="Application Flow Diagram">
+
+### 🔄 Mejoras aplicadas al diagrama de flujo:
+
+- **Se eliminó el falso nodo de decisión "Elegir acción"** y se reemplazó por navegación directa desde Home.
+- **Se añadió el flujo faltante de creación de usuario** con retorno correcto a Login.
+- **Se separaron claramente las dos decisiones reales**: ¿Tiene cuenta? y ¿Login exitoso?.
+- **Catalog y Search convergen correctamente** en Product Detail.
+- **El flujo de "No agregar al carrito"** vuelve a una pantalla válida y consistente: Catalog.
+- **"Continuar comprando" regresa a Home**, evitando conexiones ambiguas.
+- **La estructura está ordenada** para minimizar cruces y mejorar legibilidad.
 
 *Diagrama que muestra el flujo completo de navegación y interacción del usuario en la aplicación eCommerce*
 
