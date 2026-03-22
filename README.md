@@ -46,7 +46,7 @@ Este proyecto depende de dos paquetes desarrollados localmente:
 
 ## 📋 Diagrama de Flujo de la Aplicación
 
-<img src="flujo.jpg" width="800" alt="Application Flow Diagram">
+<img src="docs/screenshots/flujo.png" width="800" alt="Application Flow Diagram">
 
 ### 🔄 Mejoras aplicadas al diagrama de flujo:
 
