@@ -7,20 +7,28 @@ import 'search_page.dart';
 import 'cart_page.dart';
 import 'support_page.dart';
 import '../extensions/category_extensions.dart';
+import '../helpers/product_classifier.dart';
+import '../helpers/price_formatter.dart';
 
 /// HomePage - Main entry point for the eCommerce application
 ///
-/// This page serves as the primary navigation hub displaying featured products
-/// and quick access actions for core app functionality.
+/// This page serves as the primary navigation hub displaying featured products,
+/// promotional products, and quick access actions for core app functionality.
 ///
 /// **Features:**
-/// - Featured products section (4-6 products from API)
+/// - Featured products section (high rating products from API)
+/// - Promotional products section (low price products from API)
 /// - Quick access cards for catalog, search, and cart
 /// - Loading, success, and error states using ProductBloc
 /// - Navigation to ProductDetailPage on product selection
+/// - Smart product classification using business rules
+///
+/// **Business Rules:**
+/// - Featured products: rating >= 4.0
+/// - Promotional products: price < $50
 ///
 /// **Design System Usage:**
-/// - AppSection: Semantic blocks for featured and quick access sections
+/// - AppSection: Semantic blocks for featured, promotional and quick access sections
 /// - AppCard: Quick action cards only
 /// - AppText: Typography hierarchy throughout
 /// - AppButton: Quick access actions
@@ -29,13 +37,14 @@ import '../extensions/category_extensions.dart';
 /// - ProductListTemplate: Product grid template from design system (TEMPLATE)
 ///
 /// **State Management:**
-/// - Uses ProductBloc for featured products data fetching
-/// - Limits products to 6 items max from presentation layer
+/// - Uses ProductBloc for all products data fetching
+/// - Product classification handled by ProductClassifier helper
 /// - State derived from data presence (no explicit loading flags)
 ///
 /// **Architecture:**
 /// - HomePage: Main orchestration widget
-/// - _FeaturedProductsSection: Products display section
+/// - _FeaturedProductsSection: High-rated products display section
+/// - _PromotionalProductsSection: Low-priced products display section
 /// - _QuickActionsSection: Access shortcuts section
 /// - Follows Atomic Design principles with proper separation
 class HomePage extends StatefulWidget {
@@ -48,63 +57,48 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   
   late final ProductBloc _productBloc;
-  final List<Product> _featuredProducts = [];
+  final List<Product> _allProducts = [];
   String? _errorMessage;
-  int _loadedCount = 0;
-  final int _targetCount = 6;
-  final List<int> _featuredProductIds = [1, 2, 3, 4, 5, 6];
 
   /// Loading state derived from data presence
-  bool get _isLoading => _loadedCount < _targetCount && _errorMessage == null;
+  bool get _isLoading => _allProducts.isEmpty && _errorMessage == null;
 
   @override
   void initState() {
     super.initState();
     
-    // Initialize ProductBloc to load featured products
+    // Initialize ProductBloc to load all products
     _productBloc = initializeProductBloc((productOrProducts) {
       if (mounted) {
         setState(() {
-          if (productOrProducts is Product) {
-            // Add product to featured list if not already present
-            if (!_featuredProducts.any((p) => p.id == productOrProducts.id)) {
-              _featuredProducts.add(productOrProducts);
-              _loadedCount++;
-            }
-            _errorMessage = null;
-          } else if (productOrProducts is ProductDeleted) {
-            // Handle deleted product case
-            final product = productOrProducts.product;
-            if (!_featuredProducts.any((p) => p.id == product.id)) {
-              _featuredProducts.add(product);
-              _loadedCount++;
-            }
+          // Handle different response types from the bloc
+          if (productOrProducts is List<Product>) {
+            // LoadProducts returns List<Product> directly
+            _allProducts.clear();
+            _allProducts.addAll(productOrProducts);
             _errorMessage = null;
           } else if (productOrProducts is String) {
+            // Error case - the callback sends error messages as strings
             _errorMessage = productOrProducts;
-            _featuredProducts.clear();
-            _loadedCount = 0;
+            _allProducts.clear();
           }
         });
       }
     });
 
-    // Load featured products
-    _loadFeaturedProducts();
+    // Load all products for classification
+    _loadAllProducts();
   }
 
-  void _loadFeaturedProducts() {
+  void _loadAllProducts() {
     // Reset state
     setState(() {
-      _featuredProducts.clear();
-      _loadedCount = 0;
+      _allProducts.clear();
       _errorMessage = null;
     });
 
-    // Load featured products sequentially
-    for (final productId in _featuredProductIds) {
-      _productBloc.eventSink.add(LoadProduct(productId));
-    }
+    // Load all products using LoadProducts event
+    _productBloc.eventSink.add(LoadProducts());
   }
 
   @override
@@ -177,8 +171,8 @@ class _HomePageState extends State<HomePage> {
       return _buildLoadingState();
     }
 
-    if (_featuredProducts.isNotEmpty) {
-      return _buildSuccessState(_featuredProducts);
+    if (_allProducts.isNotEmpty) {
+      return _buildSuccessState(_allProducts);
     }
 
     if (_errorMessage != null) {
@@ -200,23 +194,25 @@ class _HomePageState extends State<HomePage> {
     return AppEmptyStateSection(
       icon: Icons.store_outlined,
       title: 'Unable to Load Store',
-      description: 'We couldn\'t load the featured products. Please try again.',
+      description: 'We couldn\'t load the products. Please try again.',
       primaryAction: AppButton(
         text: 'Retry',
         onPressed: () {
           setState(() {
             _errorMessage = null;
-            _featuredProducts.clear();
-            _loadedCount = 0;
+            _allProducts.clear();
           });
-          _loadFeaturedProducts();
+          _loadAllProducts();
         },
       ),
     );
   }
 
-  /// Main success state with featured products and quick actions
+  /// Main success state with featured products, promotional products and quick actions
   Widget _buildSuccessState(List<Product> products) {
+    // Classify products using business rules
+    final classification = ProductClassifier.classifyProducts(products);
+    
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,11 +220,23 @@ class _HomePageState extends State<HomePage> {
           // ATOM: Top spacing
           const AppSpacer(size: AppSpacerSize.large),
           
-          // MOLECULE: Featured Products Section
-          _FeaturedProductsSection(
-            products: products,
-            onProductTap: _navigateToProductDetail,
-          ),
+          // MOLECULE: Featured Products Section (High rating products)
+          if (classification.hasFeaturedProducts)
+            _FeaturedProductsSection(
+              products: classification.featured.take(6).toList(), // Limit for better UX
+              onProductTap: _navigateToProductDetail,
+            ),
+          
+          // ATOM: Section spacing
+          if (classification.hasFeaturedProducts && classification.hasPromotionalProducts)
+            const AppSpacer(size: AppSpacerSize.extraLarge),
+          
+          // MOLECULE: Promotional Products Section (Low price products)
+          if (classification.hasPromotionalProducts)
+            _PromotionalProductsSection(
+              products: classification.promotional.take(6).toList(), // Limit for better UX
+              onProductTap: _navigateToProductDetail,
+            ),
           
           // ATOM: Section spacing
           const AppSpacer(size: AppSpacerSize.extraLarge),
@@ -256,6 +264,7 @@ class _HomePageState extends State<HomePage> {
 
 /// MOLECULE: Featured Products Section using ProductListTemplate
 /// Uses design system template for optimal product display structure
+/// Shows products with high ratings (>= 4.0)
 class _FeaturedProductsSection extends StatelessWidget {
   const _FeaturedProductsSection({
     required this.products,
@@ -282,7 +291,50 @@ class _FeaturedProductsSection extends StatelessWidget {
                   .map((product) => AppProductListItem(
                         title: product.title,
                         subtitle: product.category.displayName,
-                        price: '\$${product.price.toStringAsFixed(2)}',
+                        price: PriceFormatter.format(product.price),
+                        imageUrl: product.image,
+                        isEnabled: true,
+                        onTap: () => onProductTap(product),
+                      ))
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// MOLECULE: Promotional Products Section using ProductListTemplate
+/// Uses design system template for optimal product display structure
+/// Shows products with low prices (< $50)
+class _PromotionalProductsSection extends StatelessWidget {
+  const _PromotionalProductsSection({
+    required this.products,
+    required this.onProductTap,
+  });
+
+  final List<Product> products;
+  final Function(Product) onProductTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: AppSection(
+        title: 'Special Offers',
+        child: Column(
+          children: [
+            // ATOM: Section spacing
+            const AppSpacer(size: AppSpacerSize.medium),
+            
+            // TEMPLATE: Product list template from design system
+            ProductListTemplate(
+              products: products
+                  .map((product) => AppProductListItem(
+                        title: product.title,
+                        subtitle: product.category.displayName,
+                        price: PriceFormatter.format(product.price),
                         imageUrl: product.image,
                         isEnabled: true,
                         onTap: () => onProductTap(product),
