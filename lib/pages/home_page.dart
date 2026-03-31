@@ -48,7 +48,15 @@ import '../helpers/price_formatter.dart';
 /// - _QuickActionsSection: Access shortcuts section
 /// - Follows Atomic Design principles with proper separation
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    this.productBlocFactory = initializeProductBloc,
+    this.cartBlocFactory = initializeCartBloc,
+  });
+
+  final ProductBloc Function(ProductLoadedCallback onProductLoaded)
+      productBlocFactory;
+  final CartBloc Function(CartLoadedCallback onCartLoaded) cartBlocFactory;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -68,7 +76,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     
     // Initialize ProductBloc to load all products
-    _productBloc = initializeProductBloc((productOrProducts) {
+    _productBloc = widget.productBlocFactory((productOrProducts) {
       if (mounted) {
         setState(() {
           // Handle different response types from the bloc
@@ -147,7 +155,7 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(
                 builder: (context) => CartPage(
-                  cartBloc: initializeCartBloc((state) {}),
+                  cartBloc: widget.cartBlocFactory((state) {}),
                 ),
               ),
             ),
@@ -242,7 +250,10 @@ class _HomePageState extends State<HomePage> {
           const AppSpacer(size: AppSpacerSize.extraLarge),
           
           // MOLECULE: Quick Actions Section
-          _QuickActionsSection(allProducts: products),
+          _QuickActionsSection(
+            allProducts: products,
+            cartBlocFactory: widget.cartBlocFactory,
+          ),
           
           // ATOM: Bottom spacing
           const AppSpacer(size: AppSpacerSize.extraLarge),
@@ -353,9 +364,11 @@ class _PromotionalProductsSection extends StatelessWidget {
 class _QuickActionsSection extends StatelessWidget {
   const _QuickActionsSection({
     required this.allProducts,
+    required this.cartBlocFactory,
   });
 
   final List<Product> allProducts;
+  final CartBloc Function(CartLoadedCallback onCartLoaded) cartBlocFactory;
 
   @override
   Widget build(BuildContext context) {
@@ -412,7 +425,7 @@ class _QuickActionsSection extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => CartPage(
-                          cartBloc: initializeCartBloc((state) {}),
+                          cartBloc: cartBlocFactory((state) {}),
                         ),
                       ),
                     ),

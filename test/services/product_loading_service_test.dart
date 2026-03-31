@@ -1,321 +1,242 @@
+import 'package:dartz/dartz.dart';
+import 'package:fake_maker_api_pragma_api/core/error/failures.dart';
+import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pragma_app_shell/services/product_loading_service.dart';
-import 'package:fake_maker_api_pragma_api/fake_maker_api_pragma_api.dart';
+
+class FakeProductRepository implements ProductRepository {
+  FakeProductRepository({
+    required this.productsResult,
+    required this.product,
+    this.delay = Duration.zero,
+  });
+
+  final Either<Failure, List<Product>> productsResult;
+  final Product product;
+  final Duration delay;
+
+  @override
+  Future<Either<Failure, Product>> createProduct(Product product) async =>
+      Right(product);
+
+  @override
+  Future<Either<Failure, Product>> deleteProduct(int id) async => Right(product);
+
+  @override
+  Future<Either<Failure, Product>> fetchProductById(int id) async => Right(product);
+
+  @override
+  Future<Either<Failure, List<Product>>> fetchProducts() async {
+    if (delay > Duration.zero) {
+      await Future<void>.delayed(delay);
+    }
+    return productsResult;
+  }
+
+  @override
+  Future<Either<Failure, Product>> updateProduct(int id, Product product) async =>
+      Right(product);
+}
+
+Product buildProduct({
+  int id = 1,
+  String title = 'Test Product',
+  double price = 9.99,
+}) {
+  return Product(
+    id: id,
+    title: title,
+    price: price,
+    description: '$title description',
+    category: Category.ELECTRONICS,
+    image: 'https://example.com/$id.jpg',
+    rating: Rating(rate: 4.5, count: 10),
+  );
+}
+
+ProductBloc createControlledProductBloc({
+  required Either<Failure, List<Product>> productsResult,
+  Duration delay = Duration.zero,
+}) {
+  final repository = FakeProductRepository(
+    productsResult: productsResult,
+    product: buildProduct(),
+    delay: delay,
+  );
+  final getProduct = GetProduct(repository);
+  final getProducts = GetProducts(repository);
+  final createProduct = CreateProduct(repository);
+  final deleteProduct = DeleteProduct(repository);
+  final updateProduct = UpdateProduct(repository, getProduct);
+
+  return ProductBloc(
+    getProduct,
+    getProducts,
+    createProduct,
+    deleteProduct,
+    updateProduct,
+  );
+}
 
 void main() {
   group('ProductLoadingService Tests', () {
-    
-    group('ProductLoadResult', () {
-      test('should create successful result with products', () {
-        final products = <Product>[
-          Product(
-            id: 1,
-            title: 'Test Product',
-            price: 9.99,
-            description: 'A test product',
-            category: Category.ELECTRONICS,
-            image: 'https://test.com/image.jpg',
-            rating: Rating(rate: 4.5, count: 10),
-          ),
-        ];
+    group('loadAllProducts', () {
+      test('returns success when bloc emits ProductsLoaded', () async {
+        final products = [buildProduct(title: 'Loaded Product')];
+        final bloc = createControlledProductBloc(productsResult: Right(products));
 
-        final result = ProductLoadResult.success(products);
+        final result = await ProductLoadingService.loadAllProducts(bloc);
 
         expect(result.isSuccess, true);
         expect(result.hasData, true);
         expect(result.hasError, false);
-        expect(result.data, equals(products));
-        expect(result.products, equals(products));
-        expect(result.errorMessage, isNull);
+        expect(result.data, hasLength(1));
+        expect(result.data.first.title, 'Loaded Product');
+
+        bloc.dispose();
       });
 
-      test('should create error result with message', () {
-        const errorMessage = 'Failed to load products';
-        final result = ProductLoadResult.error(errorMessage);
+      test('returns error when bloc emits ProductError', () async {
+        final bloc = createControlledProductBloc(
+          productsResult: Left(ServerFailure('server failure')),
+        );
+
+        final result = await ProductLoadingService.loadAllProducts(bloc);
 
         expect(result.isSuccess, false);
-        expect(result.hasData, false);
         expect(result.hasError, true);
-        expect(result.error, errorMessage);
-        expect(result.errorMessage, errorMessage);
-        expect(result.products, isNull);
-      });
-
-      test('should return empty list for data when error result', () {
-        final result = ProductLoadResult.error('Error message');
+        expect(result.error, 'Error al cargar el producto');
         expect(result.data, isEmpty);
+
+        bloc.dispose();
       });
 
-      test('should return default error message when none provided', () {
-        final result = ProductLoadResult.error('');
-        expect(result.error, isEmpty); // Empty string returns empty
-        
-        // Test with null-like case
-        final result2 = ProductLoadResult.error('null');
-        expect(result2.error, 'null');
+      test('returns timeout error when bloc does not respond in time', () async {
+        final bloc = createControlledProductBloc(
+          productsResult: Right([buildProduct()]),
+          delay: const Duration(milliseconds: 50),
+        );
+
+        final result = await ProductLoadingService.loadAllProducts(
+          bloc,
+          timeout: const Duration(milliseconds: 5),
+        );
+
+        expect(result.isSuccess, false);
+        expect(result.hasError, true);
+        expect(result.error, 'Request timed out. Please try again.');
+
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        bloc.dispose();
       });
 
-      test('should handle success with empty products list', () {
-        final result = ProductLoadResult.success(<Product>[]);
+      test('returns catch error when adding event fails', () async {
+        final bloc = createControlledProductBloc(
+          productsResult: Right([buildProduct()]),
+        );
+        bloc.dispose();
 
-        expect(result.isSuccess, true);
-        expect(result.hasData, false); // Empty list means no data
-        expect(result.hasError, false);
-        expect(result.data, isEmpty);
-      });
+        final result = await ProductLoadingService.loadAllProducts(bloc);
 
-      test('should properly identify hasData with non-empty products', () {
-        final products = <Product>[
-          Product(
-            id: 1,
-            title: 'Test Product',
-            price: 9.99,
-            description: 'A test product',
-            category: Category.ELECTRONICS,
-            image: 'https://test.com/image.jpg',
-            rating: Rating(rate: 4.5, count: 10),
-          ),
-        ];
-
-        final result = ProductLoadResult.success(products);
-        expect(result.hasData, true);
+        expect(result.isSuccess, false);
+        expect(result.hasError, true);
+        expect(result.error, contains('Failed to load products:'));
       });
     });
 
-    group('Static Helper Methods', () {
-      test('hasValidProducts should return true for non-empty product list', () {
-        final products = <Product>[
-          Product(
-            id: 1,
-            title: 'Test Product',
-            price: 9.99,
-            description: 'A test product',
-            category: Category.ELECTRONICS,
-            image: 'https://test.com/image.jpg',
-            rating: Rating(rate: 4.5, count: 10),
-          ),
-        ];
+    group('initializeWithCallback', () {
+      test('delegates to the provided initializer', () {
+        final bloc = createControlledProductBloc(productsResult: const Right(<Product>[]));
+        dynamic capturedCallback;
 
-        expect(ProductLoadingService.hasValidProducts(products), true);
+        final result = ProductLoadingService.initializeWithCallback(
+          (_) {},
+          initializer: (callback) {
+            capturedCallback = callback;
+            return bloc;
+          },
+        );
+
+        expect(result, same(bloc));
+        expect(capturedCallback, isA<Function>());
+
+        bloc.dispose();
+      });
+    });
+
+    group('hasValidProducts', () {
+      test('returns true for non-empty list', () {
+        expect(ProductLoadingService.hasValidProducts([buildProduct()]), true);
       });
 
-      test('hasValidProducts should return false for empty list', () {
+      test('returns false for empty or null lists', () {
         expect(ProductLoadingService.hasValidProducts(<Product>[]), false);
-      });
-
-      test('hasValidProducts should return false for null', () {
         expect(ProductLoadingService.hasValidProducts(null), false);
       });
     });
 
-    group('Service Architecture', () {
-      test('should have static methods for service operations', () {
-        // Verify the service has the expected static interface
-        expect(ProductLoadingService.hasValidProducts, isA<Function>());
-      });
+    group('ProductLoadResult', () {
+      test('success factory populates data state', () {
+        final products = [buildProduct(id: 1), buildProduct(id: 2)];
 
-      test('should provide result wrapper class', () {
-        // Verify ProductLoadResult can be instantiated
-        final successResult = ProductLoadResult.success(<Product>[]);
-        final errorResult = ProductLoadResult.error('Test error');
+        final result = ProductLoadResult.success(products);
 
-        expect(successResult, isA<ProductLoadResult>());
-        expect(errorResult, isA<ProductLoadResult>());
-      });
-    });
-
-    group('Error Handling', () {
-      test('should handle various error conditions', () {
-        final errorMessages = [
-          'Network error',
-          'Server timeout', 
-          'Invalid response',
-          'Connection failed',
-        ];
-
-        for (final message in errorMessages) {
-          final result = ProductLoadResult.error(message);
-          expect(result.hasError, true);
-          expect(result.isSuccess, false);
-          expect(result.error, isNotEmpty);
-        }
-        
-        // Test empty error message separately
-        final emptyResult = ProductLoadResult.error('');
-        expect(emptyResult.hasError, true);
-        expect(emptyResult.isSuccess, false);
-        expect(emptyResult.error, isEmpty);
-      });
-
-      test('should provide meaningful error messages', () {
-        const customError = 'Custom error message';
-        final result = ProductLoadResult.error(customError);
-
-        expect(result.error, contains('Custom error'));
-        expect(result.errorMessage, customError);
-      });
-    });
-
-    group('Data Validation', () {
-      test('should validate product structure in successful results', () {
-        final product = Product(
-          id: 1,
-          title: 'Test Product',
-          price: 19.99,
-          description: 'Test Description',
-          category: Category.ELECTRONICS,
-          image: 'https://example.com/image.jpg',
-          rating: Rating(rate: 4.0, count: 100),
-        );
-
-        final result = ProductLoadResult.success(<Product>[product]);
-        
         expect(result.isSuccess, true);
-        expect(result.data, hasLength(1));
-        
-        final retrievedProduct = result.data.first;
-        expect(retrievedProduct.id, 1);
-        expect(retrievedProduct.title, 'Test Product');
-        expect(retrievedProduct.price, 19.99);
-        expect(retrievedProduct.description, 'Test Description');
-        expect(retrievedProduct.category, Category.ELECTRONICS);
-        expect(retrievedProduct.image, 'https://example.com/image.jpg');
-        expect(retrievedProduct.rating.rate, 4.0);
-        expect(retrievedProduct.rating.count, 100);
-      });
-
-      test('should handle multiple products in success result', () {
-        final products = List.generate(5, (index) => Product(
-          id: index + 1,
-          title: 'Product ${index + 1}',
-          price: (index + 1) * 10.0,
-          description: 'Description ${index + 1}',
-          category: Category.ELECTRONICS,
-          image: 'https://example.com/image${index + 1}.jpg',
-          rating: Rating(rate: 4.0 + (index * 0.1), count: 50 + index),
-        ));
-
-        final result = ProductLoadResult.success(products);
-        
         expect(result.hasData, true);
-        expect(result.data, hasLength(5));
-        
-        for (int i = 0; i < products.length; i++) {
-          expect(result.data[i].id, i + 1);
-          expect(result.data[i].title, 'Product ${i + 1}');
-          expect(result.data[i].price, (i + 1) * 10.0);
-        }
-      });
-    });
-
-    group('Result State Management', () {
-      test('should maintain consistent data access', () {
-        final products = <Product>[
-          Product(
-            id: 1,
-            title: 'Original Product',
-            price: 9.99,
-            description: 'Original Description',
-            category: Category.ELECTRONICS,
-            image: 'https://example.com/image.jpg',
-            rating: Rating(rate: 4.0, count: 10),
-          ),
-        ];
-
-        final result = ProductLoadResult.success(products);
-        final resultProducts = result.data;
-        
-        // Verify we get the correct products
-        expect(resultProducts, hasLength(1));
-        expect(resultProducts.first.title, 'Original Product');
-        
-        // Verify data consistency on multiple calls
-        expect(result.data.length, result.products!.length);
-        expect(result.data.first.id, resultProducts.first.id);
+        expect(result.hasError, false);
+        expect(result.products, products);
+        expect(result.data, hasLength(2));
+        expect(result.errorMessage, isNull);
       });
 
-      test('should handle state transitions correctly', () {
-        // Start with success state
-        final successResult = ProductLoadResult.success(<Product>[
-          Product(
-            id: 1,
-            title: 'Test',
-            price: 9.99,
-            description: 'Test',
-            category: Category.ELECTRONICS,
-            image: 'https://test.com/image.jpg',
-            rating: Rating(rate: 4.0, count: 10),
-          ),
-        ]);
+      test('error factory populates error state', () {
+        final result = ProductLoadResult.error('Failed to load products');
 
-        expect(successResult.isSuccess, true);
-        expect(successResult.hasError, false);
-
-        // Create error state
-        final errorResult = ProductLoadResult.error('Something went wrong');
-
-        expect(errorResult.isSuccess, false);
-        expect(errorResult.hasError, true);
-
-        // States should be independent
-        expect(successResult.isSuccess, true); // Should still be true
-      });
-    });
-
-    group('Edge Cases', () {
-      test('should handle very long error messages', () {
-        final longError = 'Error: ' + 'Very long error message ' * 100;
-        final result = ProductLoadResult.error(longError);
-
+        expect(result.isSuccess, false);
+        expect(result.hasData, false);
         expect(result.hasError, true);
-        expect(result.error, equals(longError));
-        expect(result.errorMessage, equals(longError));
+        expect(result.error, 'Failed to load products');
+        expect(result.products, isNull);
+        expect(result.data, isEmpty);
       });
 
-      test('should handle special characters in error messages', () {
-        const specialError = 'Error with special chars: áéíóú, ñÑ, @#\$%^&*()';
-        final result = ProductLoadResult.error(specialError);
+      test('success with empty list reports no data', () {
+        final result = ProductLoadResult.success(<Product>[]);
 
-        expect(result.hasError, true);
-        expect(result.error, specialError);
+        expect(result.isSuccess, true);
+        expect(result.hasData, false);
+        expect(result.hasError, false);
+        expect(result.data, isEmpty);
       });
 
-      test('should handle products with extreme values', () {
-        final product = Product(
-          id: 999999,
-          title: 'Very Expensive Product',
-          price: 99999.99,
-          description: 'Extremely expensive item',
-          category: Category.ELECTRONICS,
-          image: 'https://example.com/expensive.jpg',
-          rating: Rating(rate: 5.0, count: 999999),
+      test('supports multiple products and preserves values', () {
+        final products = List.generate(
+          3,
+          (index) => buildProduct(
+            id: index + 1,
+            title: 'Product ${index + 1}',
+            price: (index + 1) * 10.0,
+          ),
         );
 
-        final result = ProductLoadResult.success(<Product>[product]);
-        
-        expect(result.hasData, true);
-        expect(result.data.first.id, 999999);
-        expect(result.data.first.price, 99999.99);
-        expect(result.data.first.rating.count, 999999);
+        final result = ProductLoadResult.success(products);
+
+        expect(result.data, hasLength(3));
+        expect(result.data.first.title, 'Product 1');
+        expect(result.data.last.price, 30.0);
       });
 
-      test('should handle products with minimum values', () {
-        final product = Product(
-          id: 1,
-          title: 'A',
-          price: 0.01,
-          description: 'B',
-          category: Category.ELECTRONICS,
-          image: 'https://x.co/i.jpg',
-          rating: Rating(rate: 0.1, count: 1),
-        );
+      test('preserves empty special and long error messages', () {
+        final emptyResult = ProductLoadResult.error('');
+        final longError = 'Error: ' + ('Very long error message ' * 20);
+        final specialError = 'Error with special chars: áéíóú, ñÑ, @#\$%^&*()';
 
-        final result = ProductLoadResult.success(<Product>[product]);
-        
-        expect(result.hasData, true);
-        expect(result.data.first.title, 'A');
-        expect(result.data.first.price, 0.01);
-        expect(result.data.first.rating.rate, 0.1);
+        final longResult = ProductLoadResult.error(longError);
+        final specialResult = ProductLoadResult.error(specialError);
+
+        expect(emptyResult.error, isEmpty);
+        expect(longResult.error, longError);
+        expect(specialResult.error, specialError);
       });
     });
   });

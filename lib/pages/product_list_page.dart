@@ -45,7 +45,13 @@ import '../helpers/product_filter_helper.dart';
 /// - Uses LoadProducts event vs individual LoadProduct calls
 /// - Optimized for catalog browsing vs quick access
 class ProductListPage extends StatefulWidget {
-  const ProductListPage({super.key});
+  const ProductListPage({
+    super.key,
+    this.productBlocFactory = initializeProductBloc,
+  });
+
+  final ProductBloc Function(ProductLoadedCallback onProductLoaded)
+      productBlocFactory;
 
   @override
   State<ProductListPage> createState() => _ProductListPageState();
@@ -74,7 +80,7 @@ class _ProductListPageState extends State<ProductListPage> {
     super.initState();
     
     // Initialize ProductBloc to load all products
-    _productBloc = initializeProductBloc((productOrProducts) {
+    _productBloc = widget.productBlocFactory((productOrProducts) {
       if (mounted) {
         setState(() {
           // Handle different response types from the bloc

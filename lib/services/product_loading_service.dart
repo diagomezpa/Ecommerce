@@ -16,28 +16,41 @@ class ProductLoadingService {
   /// Load all products with proper error handling
   /// 
   /// Returns a result wrapper containing either products or error information
-  static Future<ProductLoadResult> loadAllProducts(ProductBloc productBloc) async {
+  static Future<ProductLoadResult> loadAllProducts(
+    ProductBloc productBloc, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    StreamSubscription<ProductState>? subscription;
+
     try {
       final completer = Completer<ProductLoadResult>();
-      
-      // Set up the ProductBloc callback to handle results
-      final bloc = initializeProductBloc((productOrProducts) {
-        if (productOrProducts is List<Product>) {
-          completer.complete(ProductLoadResult.success(productOrProducts));
-        } else if (productOrProducts is String) {
-          completer.complete(ProductLoadResult.error(productOrProducts));
+
+      subscription = productBloc.state.listen((state) {
+        if (completer.isCompleted) {
+          return;
+        }
+
+        if (state is ProductsLoaded) {
+          completer.complete(ProductLoadResult.success(state.products));
+        } else if (state is ProductError) {
+          completer.complete(ProductLoadResult.error(state.message));
         }
       });
-      
+
       // Trigger the loading
-      bloc.eventSink.add(LoadProducts());
-      
+      productBloc.eventSink.add(LoadProducts());
+
       // Wait for result with timeout
-      return await completer.future.timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => ProductLoadResult.error('Request timed out. Please try again.'),
+      final result = await completer.future.timeout(
+        timeout,
+        onTimeout: () =>
+            ProductLoadResult.error('Request timed out. Please try again.'),
       );
+
+      await subscription.cancel();
+      return result;
     } catch (e) {
+      await subscription?.cancel();
       return ProductLoadResult.error('Failed to load products: ${e.toString()}');
     }
   }
@@ -45,8 +58,11 @@ class ProductLoadingService {
   /// Initialize and configure ProductBloc with proper callback handling
   /// 
   /// Simplifies ProductBloc setup for consistent usage across components
-  static ProductBloc initializeWithCallback(Function(dynamic) onResult) {
-    return initializeProductBloc(onResult);
+  static ProductBloc initializeWithCallback(
+    Function(dynamic) onResult, {
+    ProductBloc Function(ProductLoadedCallback onResult)? initializer,
+  }) {
+    return (initializer ?? initializeProductBloc)(onResult);
   }
 
   /// Check if products list is valid and not empty
