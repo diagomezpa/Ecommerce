@@ -1,4 +1,4 @@
-# Documentación – Fase 5 eCommerce Flutter
+# Documentación – Fase 5 y Fase 6 eCommerce Flutter
 
 **pragma_app_shell** - Aplicación eCommerce con arquitectura modular y Clean Architecture
 
@@ -280,7 +280,83 @@ ProductLoadingService.loadAllProducts(productBloc)
 
 ---
 
-## 🔄 6. Flujo de la Aplicación (alto nivel)
+## 🧪 6. Fase 6 - Generar Test y Validar Cobertura
+
+La **Fase 6** fue completada satisfactoriamente en este proyecto, incorporando una estrategia de testing automatizado con pruebas **unitarias**, **de widgets** y **de integración**, además de la validación de cobertura con `lcov`.
+
+### Objetivo de la fase
+
+El objetivo de esta fase fue evaluar y demostrar la capacidad de generar pruebas en la aplicación Flutter y validar una cobertura superior al **80%**, asegurando una base sólida de calidad, mantenibilidad y detección temprana de regresiones.
+
+### Requerimientos cubiertos
+
+#### 1. Generación de tests en la aplicación Flutter
+
+- Se implementaron **tests unitarios** para helpers, servicios y lógica principal.
+- Se desarrollaron **tests de widgets** para verificar comportamiento, renderizado, estados de carga, error, navegación e interacción de pantallas clave.
+- Se incorporó un **test de integración** para validar el flujo principal del eCommerce de extremo a extremo.
+
+#### 2. Generación de tests en los paquetes creados e integración con la app
+
+- La aplicación fue validada en conjunto con los paquetes reutilizables `pragma_design_system` y `fake_maker_api_pragma_api`.
+- Los tests cubren la integración real entre la app, el sistema de diseño y la capa de dominio consumida desde paquetes externos.
+- Se añadieron pruebas de integración que aseguran el funcionamiento coordinado de estos componentes dentro del flujo comercial principal.
+
+#### 3. Validación de cobertura con lcov
+
+- Se generó el reporte de cobertura con `lcov` para el proyecto.
+- La cobertura validada superó el umbral requerido del **80%**.
+- Resultado validado en el proyecto: **80.66%**.
+
+### Tipos de pruebas implementadas
+
+- **Unit tests** para helpers y servicios, incluyendo validaciones, cálculos y carga de productos.
+- **Widget tests** para páginas críticas como login, home, catálogo, detalle, carrito y flujos de navegación.
+- **Integration test** para el flujo feliz del eCommerce desde autenticación hasta checkout.
+
+### Evidencias generadas
+
+- Código fuente de pruebas unitarias y de widgets en `test/`
+- Test de integración en `integration_test/ecommerce_happy_path_test.dart`
+- Reporte de cobertura en `coverage/`
+
+### Test de integración implementado
+
+Se añadió un test de integración completo que valida el flujo:
+
+1. Login exitoso
+2. Navegación al catálogo
+3. Selección de producto
+4. Visualización de detalle
+5. Acción de agregar al carrito
+6. Navegación al carrito
+7. Validación de apertura de checkout
+
+Este flujo fue implementado en `integration_test/ecommerce_happy_path_test.dart` y se ejecuta sin depender de red real mediante `HttpOverrides` con respuestas mockeadas para autenticación, productos, carrito e imágenes.
+
+### Comandos de validación
+
+```bash
+flutter pub get
+flutter test --coverage
+flutter test integration_test/ecommerce_happy_path_test.dart -d windows
+```
+
+### Entregables cubiertos
+
+1. Código fuente de los tests generados para la aplicación Flutter.
+2. Informe de cobertura generado con `lcov`.
+3. Documentación del proceso de testing, criterios cubiertos y decisiones relevantes.
+
+### Resultado
+
+La aplicación cuenta ahora con una base de pruebas automatizadas alineada con buenas prácticas de testing en Flutter, cobertura validada por encima del objetivo mínimo y documentación suficiente para reproducir la ejecución y revisión de calidad.
+
+**Estado de la Fase 6: Completada**
+
+---
+
+## 🔄 7. Flujo de la Aplicación (alto nivel)
 
 El siguiente flujo corresponde al comportamiento real implementado con arquitectura limpia:
 
@@ -299,7 +375,7 @@ El siguiente flujo corresponde al comportamiento real implementado con arquitect
 
 ---
 
-## 🧠 9. Decisiones de Diseño Importantes
+## 🧠 8. Decisiones de Diseño Importantes
 
 ### ✅ TODAS las Pages ahora siguen Clean Architecture  
 - **Antes**: Validaciones, cálculos, formateo, filtrado en UI
@@ -347,7 +423,7 @@ El eCommerce no implementa su propio BLoC.
 
 ---
 
-## 📱 7. Responsive Design
+## 📱 9. Responsive Design
 
 La aplicación fue construida utilizando:
 
@@ -362,7 +438,7 @@ Permitiendo que funcione correctamente en **diferentes tamaños de pantalla y or
 
 ---
 
-## 🧪 8. Funcionalidades Implementadas
+## 🧪 10. Funcionalidades Implementadas
 
 - ✔ Navegación por categorías
 - ✔ Búsqueda local sin endpoint adicional
@@ -373,7 +449,7 @@ Permitiendo que funcione correctamente en **diferentes tamaños de pantalla y or
 
 ---
 
-## 📱 9. Capturas de Pantalla
+## 📱 11. Capturas de Pantalla
 
 ### Login y Autenticación
 <img src="docs/screenshots/login_page.png" width="300" alt="Login Page">
@@ -399,7 +475,7 @@ Permitiendo que funcione correctamente en **diferentes tamaños de pantalla y or
 
 ---
 
-## 🧠 Decisiones Arquitectónicas que Demuestran Escalabilidad
+## 🧠 12. Decisiones Arquitectónicas que Demuestran Escalabilidad
 
 ✅ **El eCommerce podría cambiar completamente de API sin modificar la UI.**
 
@@ -411,7 +487,7 @@ Permitiendo que funcione correctamente en **diferentes tamaños de pantalla y or
 
 ---
 
-## 🧪 Consideraciones de Testabilidad
+## 🧪 13. Consideraciones de Testabilidad
 
 ✅ **Cada capa puede ser testeada de forma independiente.**
 
@@ -423,11 +499,12 @@ Permitiendo que funcione correctamente en **diferentes tamaños de pantalla y or
 
 ---
 
-## 🏁 10. Conclusión
+## 🏁 14. Conclusión
 
 Esta aplicación demuestra:
 
 - **Clean Architecture completamente implementada en TODAS las pages**
+- **Fase 6 de testing y cobertura completada con éxito**
 - **Reutilización total de paquetes propios**
 - **Separación perfecta de responsabilidades**
 - **Eliminación completa de duplicación de código**
@@ -442,6 +519,8 @@ Esta aplicación demuestra:
 - ✅ **0 lógica de negocio** restante en capa UI
 - ✅ **100% separación de responsabilidades** lograda
 - ✅ **Código completamente DRY** (Don't Repeat Yourself)
+- ✅ **Cobertura validada de 80.66%** en el proyecto
+- ✅ **Tests unitarios, de widgets e integración** implementados
 
 ### 🚀 **Arquitectura Final Lograda:**
 
